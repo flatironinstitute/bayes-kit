@@ -5,9 +5,11 @@ import numpy as np
 
 class LogDensityModel(Protocol):
     def dims(self) -> int:
+        """number of parameters"""
         ...
 
     def log_density(self, params_unc: ArrayLike) -> float:
+        """unnormalized log density"""
         ...
 
 
