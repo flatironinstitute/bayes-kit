@@ -6,7 +6,7 @@ class BetaBinom:
         return 1
 
     def log_density(self, theta) -> float:
-        self.log_likelihood(theta) + self.log_prior(theta)
+        return self.log_likelihood(theta) + self.log_prior(theta)
 
     def log_prior(self, theta) -> float:
         return stats.beta.logpdf(theta[0], 2, 3)
