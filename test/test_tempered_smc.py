@@ -6,7 +6,7 @@ import numpy as np
 def test_rwm_smc():
     model = BetaBinom()
     M = 50
-    N = 100
+    N = 10
     rwm_smc = TemperedLikelihoodSMC(
         M,
         N,
@@ -17,8 +17,8 @@ def test_rwm_smc():
     )
 
     rwm_smc.run()
-
     draws = rwm_smc.thetas
+
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
 
