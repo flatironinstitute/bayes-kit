@@ -2,10 +2,10 @@ from scipy import stats
 
 
 class BetaBinom:
-    def dims(self):
+    def dims(self) -> int:
         return 1
 
-    def log_density(self, theta):
+    def log_density(self, theta) -> float:
         self.log_likelihood(theta) + self.log_prior(theta)
 
     def log_prior(self, theta) -> float:
@@ -14,5 +14,5 @@ class BetaBinom:
     def log_likelihood(self, theta) -> float:
         return stats.binom.logpmf(5, 15, theta[0])
 
-    def initial_state(self, n):
+    def initial_state(self, _: int):
         return stats.beta.rvs(2, 3, size=1)

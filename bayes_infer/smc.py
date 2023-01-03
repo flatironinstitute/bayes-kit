@@ -1,8 +1,9 @@
-from typing import Callable
+from typing import Callable, Iterator
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-DensityFunction = Callable[[NDArray[np.float64]], float]
+Vector = NDArray[np.float64]
+DensityFunction = Callable[[Vector], float]
 
 
 class TemperedLikelihoodSMC:
@@ -13,7 +14,7 @@ class TemperedLikelihoodSMC:
         sample_initial: Callable[[int], ArrayLike],
         log_likelihood: DensityFunction,
         log_prior: DensityFunction,
-        kernel: Callable[[NDArray[np.float64], DensityFunction], ArrayLike],
+        kernel: Callable[[Vector, DensityFunction], ArrayLike],
     ) -> None:
 
         self.M = M
@@ -25,11 +26,11 @@ class TemperedLikelihoodSMC:
         self.log_likelihood = log_likelihood
         self.kernel = kernel
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Vector]:
         self.run()
         return iter(self.thetas)
 
-    def run(self):
+    def run(self) -> None:
         for n in range(1, self.N + 1):
             self.transition(n)
 
@@ -54,8 +55,8 @@ class TemperedLikelihoodSMC:
 
 
 def importance_resample(
-    thetas: NDArray[np.float64], lpminus1: DensityFunction, lp: DensityFunction
-):
+    thetas: Vector, lpminus1: DensityFunction, lp: DensityFunction
+) -> Vector:
     weights = np.exp(
         np.apply_along_axis(
             lambda theta: lp(theta) - lpminus1(theta), axis=1, arr=thetas
@@ -67,11 +68,11 @@ def importance_resample(
     return thetas[idxs]
 
 
-def metropolis_kernel(scale: float):
-    def proposal_rng(theta: NDArray[np.float64]):
+def metropolis_kernel(scale: float) -> Callable[[Vector, DensityFunction], Vector]:
+    def proposal_rng(theta: Vector) -> Vector:
         return np.random.normal(loc=theta, scale=scale)
 
-    def metropolis(theta: NDArray[np.float64], lp: DensityFunction):
+    def metropolis(theta: Vector, lp: DensityFunction) -> Vector:
         theta_star = proposal_rng(theta)
         if np.log(np.random.uniform()) < lp(theta_star) - lp(theta):
             return theta_star
