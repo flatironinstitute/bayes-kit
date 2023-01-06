@@ -1,8 +1,10 @@
 import numpy as np
-FloatType = np.float64
-VectorType = NDArray[FloatType]
 
-def rhat(chains: list[VectorType]) -> FloatType
+FloatType = np.float64
+VectorType = np.typing.NDArray[FloatType]
+
+
+def rhat(chains: list[VectorType]) -> FloatType:
     """
     Return the potential scale reduction factor (R-hat) for a list of Markov chains.
 
@@ -26,5 +28,7 @@ def rhat(chains: list[VectorType]) -> FloatType
     mean_chain_length = np.mean(chain_lengths)
     means = [np.mean(chain) for chain in chains]
     vars = [np.var(chain, ddof=1) for chain in chains]
-    r_hat = sqrt(mean_chain_length / (mean_chain_length - 1) + np.var(means) / np.mean(vars))
+    r_hat = np.sqrt(
+        mean_chain_length / (mean_chain_length - 1) + np.var(means) / np.mean(vars)
+    )
     return r_hat

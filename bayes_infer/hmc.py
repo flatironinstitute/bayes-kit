@@ -1,8 +1,9 @@
-from typing import Callable, Optional, Tuple
+from typing import Optional, Tuple
 from numpy.typing import NDArray
 import numpy as np
 
 from .model_types import GradModel
+
 
 class HMCDiag:
     def __init__(
