@@ -5,7 +5,7 @@ import numpy as np
 
 def test_rwm_smc():
     model = BetaBinom()
-    M = 50
+    M = 75
     N = 10
     rwm_smc = TemperedLikelihoodSMC(
         M,

@@ -6,9 +6,9 @@ def test_hmc_diag():
     # init with draw from posterior
     init = np.random.normal(loc=0, scale=1, size=[1])
     model = StdNormal()
-    mala = HMCDiag(model, steps=10, stepsize=0.1, init=init)
+    mala = HMCDiag(model, steps=10, stepsize=0.25, init=init)
 
-    M = 1000
+    M = 10000
     draws = np.array([mala.sample()[0] for _ in range(M)])
 
     mean = draws.mean(axis=0)
