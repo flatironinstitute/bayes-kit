@@ -20,10 +20,6 @@ class MALA:
             self._theta
         )
 
-    def correction(self, theta_prime, theta, grad_theta):
-        x = theta_prime - theta - self._epsilon * grad_theta
-        return (-0.25 / self._epsilon) * x.dot(x)
-
     def __iter__(self):
         return self
 
@@ -48,4 +44,8 @@ class MALA:
             self._log_p_theta = lp_prop
             self._log_p_grad_theta = grad_prop
 
-        return self._theta, self._log_p_grad_theta
+        return self._theta, self._log_p_theta
+
+    def correction(self, theta_prime, theta, grad_theta):
+        x = theta_prime - theta - self._epsilon * grad_theta
+        return (-0.25 / self._epsilon) * x.dot(x)
