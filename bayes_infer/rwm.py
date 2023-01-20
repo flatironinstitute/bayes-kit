@@ -28,8 +28,8 @@ class RandomWalkMetropolis:
         theta_star = self._proposal_rng(self._theta)
         log_p_theta_star = self._model.log_density(theta_star)
         if np.log(np.random.uniform()) < log_p_theta_star - self._log_p_theta:
-            self._theta = theta_star
+            self._theta = np.asanyarray(theta_star)
             self._log_p_theta = log_p_theta_star
         return self._theta, self._log_p_theta
 
-    
+
