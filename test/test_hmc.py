@@ -1,5 +1,5 @@
 from models.std_normal import StdNormal
-from bayes_infer.hmc import HMCDiag
+from bayes_kit.hmc import HMCDiag
 import numpy as np
 
 def test_hmc_diag():

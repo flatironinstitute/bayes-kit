@@ -4,6 +4,7 @@ import numpy as np
 
 from .model_types import LogDensityModel
 
+
 class RandomWalkMetropolis:
     def __init__(
         self,
@@ -31,5 +32,3 @@ class RandomWalkMetropolis:
             self._theta = np.asanyarray(theta_star)
             self._log_p_theta = log_p_theta_star
         return self._theta, self._log_p_theta
-
-

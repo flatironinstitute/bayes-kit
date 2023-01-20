@@ -4,12 +4,14 @@ import numpy as np
 
 from .model_types import LogDensityModel
 
+
 class Stretcher:
     """
     Goodman, J. and Weare, J., 2010. Ensemble samplers with affine invariance.
     *Communications in Applied Mathematics and Computational Science*
     5(1):65--80.
     """
+
     # def __init__(
     #         self,
     #         model: LogDensityModel,
@@ -34,7 +36,7 @@ class Stretcher:
     #     self._thetas = init or np.random.normal(size=self._drawshape)
     #     self._firsthalf = range(halfwalkers)
     #     self._secondhalf = range(halfwalkers, walkers)
-        
+
     # def __iter__(self):
     #     return self
 
@@ -44,7 +46,7 @@ class Stretcher:
     # def draw_z(self):
     #     """Return random draw z in (1/a, a) with p(z) propto 1 / sqrt(z)"""
     #     return np.square(np.random.uniform(self._inv_sqrt_a, self._sqrt_a))
-    
+
     # def stretch_move(self, theta_k: NDarray[np.float64], theta_j: NDarray[np.float64]):
     #     z = self.draw_z()
     #     theta_star = theta_j + z * (theta_k - theta_j)  # (1 - z) * theta_j + z * theta_k
@@ -53,7 +55,7 @@ class Stretcher:
     #         return theta_star
     #     return theta_k
 
-    # def sample(self) -> NDarray[np.float64]  
+    # def sample(self) -> NDarray[np.float64]
     #     js = np.random.choice(secondhalf, size=self._halfwalkers)
     #     for k in firsthalf:
     #         self._thetas[k] = stretch_move(self._thetas[k], self._thetas[js[k]])
@@ -62,6 +64,5 @@ class Stretcher:
     #         self_thetas[k] = stretch_move(self._thetas[k], self._thetas[js[k]])
     #     return self._thetas
 
-# TODO(carpenter): cache log density rather than recomputing for self
 
-        
+# TODO(carpenter): cache log density rather than recomputing for self

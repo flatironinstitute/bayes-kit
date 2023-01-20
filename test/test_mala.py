@@ -1,6 +1,6 @@
 from models.std_normal import StdNormal
 from models.beta_binomial import BetaBinom
-from bayes_infer.mala import MALA
+from bayes_kit.mala import MALA
 import numpy as np
 
 

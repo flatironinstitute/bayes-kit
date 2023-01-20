@@ -1,5 +1,5 @@
 from models.std_normal import StdNormal
-from bayes_infer.rwm import RandomWalkMetropolis
+from bayes_kit.rwm import RandomWalkMetropolis
 import numpy as np
 
 def test_rwm():

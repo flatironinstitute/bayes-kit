@@ -1,6 +1,6 @@
-# bayes-infer
+# bayes-kit
 
-`bayes-infer` is an open-source Python package for black-box Bayesian
+`bayes-kit` is an open-source Python package for black-box Bayesian
 inference with minimial dependencies for maximal flexiblity.
 
 *Bayesian models* involve specifying a posterior log density for
@@ -19,14 +19,14 @@ code, such as
     * [TensorFlow Probability](https://www.tensorflow.org/probability).
 
 *Bayesian inference* involves conditioning on data and averaging over
-uncertainty.  Specifically, `bayes-infer` can compute
+uncertainty.  Specifically, `bayes-kit` can compute
     * parameter estimates,
     * posterior predictions for new observations, and
     * event probability forecasts,
 all with Bayesian uncertainty quantification.
 
 *Black-box* algorithms are agnostic to model structure.  Algorithms in
-`bayes-infer` may require only log densities, whereas the
+`bayes-kit` may require only log densities, whereas the
 high-performance algorithms further require gradients of the log
 density function.
 
@@ -54,7 +54,7 @@ generator.
 
 ## Dependencies
 
-`bayes-infer` has minimal dependencies, requiring only
+`bayes-kit` has minimal dependencies, requiring only
 
 * [NumPy](https://numpy.org).
 
