@@ -14,10 +14,10 @@ def rhat(chains: list[VectorType]) -> FloatType:
     the standard definition when all chains are the same length.
 
     Parameters:
-    chains: list of unary Markov chains
+    chains: list of univariate Markov chains
 
     Returns:
-    R-hat
+    R-hat statistic
 
     Throws:
     ValueError: if there are fewer than two chains
@@ -29,6 +29,6 @@ def rhat(chains: list[VectorType]) -> FloatType:
     means = [np.mean(chain) for chain in chains]
     vars = [np.var(chain, ddof=1) for chain in chains]
     r_hat = np.sqrt(
-        mean_chain_length / (mean_chain_length - 1) + np.var(means) / np.mean(vars)
+        mean_chain_length / (mean_chain_length - 1) + np.var(means, ddof=0) / np.mean(vars)
     )
     return r_hat

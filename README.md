@@ -1,14 +1,42 @@
 # bayes-kit
 
-`bayes-kit` is an open-source Python package for black-box Bayesian
-inference with minimial dependencies for maximal flexiblity.
+`bayes-kit` is an open-source Python package for Bayesian inference
+and posterior analysis with minimial dependencies for maximal
+flexiblity.
 
-*Bayesian models* involve specifying a posterior log density for
-parameters conditioned on data.  Bayesian models are typically
-specified in terms of a prior distribution over parameters and a
-sampling distribution which generates observed data conditioned on the
-parameters.  Users are free to define models using arbitrary Python
-code, such as
+## Example
+
+The following example defines a model `StdNormal`, samples 1000 draws
+using Metropolis-adjusted Langevin sampling, and prints the mean and
+variance estimates.
+
+```python
+import numpy as np
+from bayes_kit.mala import MALA
+
+class StdNormal:
+	def dims(self):
+		return 1
+	def log_density(self, theta):
+		return -0.5 * theta[0]**2
+	def log_density_gradient(self, theta):
+		return self.log_density(theta), -theta
+	
+model = StdNormal()
+sampler = MALA(model, 0.2)
+M = 1000
+draws = np.array([sampler.sample()[0] for _ in range(M)])
+
+print(f"{draws.mean()=}  {draws.var()=}")
+print(f"{draws[0:5]=}")
+```
+
+## Model specification
+
+For `bayes-kit`, a *Bayesian model* is specified as a class
+implementing a log density function with optional gradients and
+Hessians.  Models may be defined using arbitrary Python code,
+including 
 
 * direct implementation in [NumPy](https://numpy.org),
 * Python's foreign function interface to Fortran, C++, etc., or
@@ -18,45 +46,74 @@ code, such as
 	* [JAX](https://github.com/google/jax), or
     * [TensorFlow Probability](https://www.tensorflow.org/probability).
 
-*Bayesian inference* involves conditioning on data and averaging over
-uncertainty.  Specifically, `bayes-kit` can compute
+## Bayesian inference
+
+*Bayesian inference* involves conditioning on observed data and
+averaging over uncertainty.  Specifically, `bayes-kit` can compute
     * parameter estimates,
     * posterior predictions for new observations, and
     * event probability forecasts,
 all with Bayesian uncertainty quantification.
 
-*Black-box* algorithms are agnostic to model structure.  Algorithms in
-`bayes-kit` may require only log densities, whereas the
-high-performance algorithms further require gradients of the log
-density function.
+Algorithms in `bayes-kit` rely only on a model's log density function
+and optionally its derivatives, not on any particular model structure.
+As such, they are closed-box algorithms that treat models as
+encapsulated.
 
+High performance algorithms that scale well with dimension require
+gradients and algorithms that adapt to varying curvature require
+Hessians. 
 
-## Markov chain Monte Carlo samplers
+### Markov chain Monte Carlo samplers
 
 Markov chain Monte Carlo (MCMC) samplers provide a sequence of random
 draws from target log density, which may be used for Monte Carlo
 estimates of posterior expectations and quantiles for uncertainty
 quantification.
 
+#### Random-walk Metropolis sampler
+
+Random-walk Metropolis (RWM) is a diffusive sampler that requires a
+target log density function and a symmetric pseudorandom proposal
+generator.
+
+#### Metropolis-adjusted Langevin sampler
+
+Metroplis-adjusted Langevin (MALA) is a diffusive sampler that adjusts
+proposals with gradient-based information.  MALA requires a target log
+density and gradient function.
+
 #### Hamiltonian Monte Carlo sampler
 
-Hamiltonian Monte Carlo simulates Hamiltonian dynamics with a
+Hamiltonian Monte Carlo (HMC) simulates Hamiltonian dynamics with a
 potential energy function equal to the negative log density. It
 requires a target log density, gradient function, and optionally a
 metric.
 
-#### Random-walk Metropolis sampler
+### Sequential Monte Carlo samplers
 
-Random-walk Metropolis is a diffusive sampler that requires a
-target log density function and a symmetric pseudorandom proposal
-generator.
+Sequential Monte Carlo (SMC) samplers alternate proposing moves and
+sampling importance resampling for a sequence of intermediate
+densities that end in the target density.
+
+#### Likelihood annealed sequential Monte Carlo sampler
+
+In this approach to SMC, the target at step `n` is proportional is
+proportional to
+
+```
+p(theta | y)^t[n] * p(theta),
+```
+
+where the temperature `t[n]` runs from 0 to 1 across iterations.
 
 
 ## Dependencies
 
-`bayes-kit` has minimal dependencies, requiring only
+`bayes-kit` only depends on a single external package,
 
 * [NumPy](https://numpy.org).
+https://mail.google.com/mail/u/0/#inbox
 
 
 ## Licensing

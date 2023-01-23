@@ -4,7 +4,6 @@ import numpy as np
 
 from .model_types import LogDensityModel
 
-
 class RandomWalkMetropolis:
     def __init__(
         self,
