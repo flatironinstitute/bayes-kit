@@ -2,9 +2,9 @@ import numpy as np
 
 FloatType = np.float64
 VectorType = np.typing.NDArray[FloatType]
+SeqType = np.typing.ArrayLike
 
-
-def rhat(chains: list[VectorType]) -> FloatType:
+def rhat(chains: list[SeqType]) -> FloatType:
     """
     Return the potential scale reduction factor (R-hat) for a list of Markov chains.
 
@@ -12,6 +12,11 @@ def rhat(chains: list[VectorType]) -> FloatType:
     then `R-hat = sqrt((mean(N) - 1) / mean(N) + var(phi) / mean(psi))`, where
     `phi[m] = mean(chains[m])` and `psi[m] = var(chains[m])`.  This reduces to
     the standard definition when all chains are the same length.
+
+    R-hat was introduced in this paper.
+
+    Gelman, A. and Rubin, D. B., 1992. Inference from iterative simulation using
+    multiple sequences. Statistical Science, 457--472. 
 
     Parameters:
     chains: list of univariate Markov chains
