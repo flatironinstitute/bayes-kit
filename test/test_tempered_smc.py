@@ -1,4 +1,4 @@
-from models.beta_binomial import BetaBinom
+from test.models.beta_binomial import BetaBinom
 from bayes_kit.smc import TemperedLikelihoodSMC, metropolis_kernel
 import numpy as np
 

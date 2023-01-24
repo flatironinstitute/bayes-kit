@@ -1,8 +1,8 @@
-from models.std_normal import StdNormal
+from test.models.std_normal import StdNormal
 from bayes_kit.rwm import RandomWalkMetropolis
 import numpy as np
 
-def test_rwm():
+def test_rwm() -> None:
     # init with draw from posterior
     init = np.random.normal(loc=0, scale=1, size=[1])
     model = StdNormal()

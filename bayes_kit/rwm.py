@@ -25,7 +25,7 @@ class RandomWalkMetropolis:
 
     def sample(self) -> Tuple[NDArray[np.float64], float]:
         # does not include initial value as first draw
-        theta_star = self._proposal_rng(self._theta)
+        theta_star = np.asanyarray(self._proposal_rng(self._theta))
         log_p_theta_star = self._model.log_density(theta_star)
         if np.log(np.random.uniform()) < log_p_theta_star - self._log_p_theta:
             self._theta = np.asanyarray(theta_star)
