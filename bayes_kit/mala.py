@@ -1,8 +1,10 @@
-from typing import Optional, Tuple
+from typing import Iterator, Optional, Tuple
 from numpy.typing import NDArray
 import numpy as np
 
 from .model_types import GradModel
+
+Sample = tuple[NDArray[np.float64], float]
 
 
 class MALA:
@@ -16,18 +18,16 @@ class MALA:
         self._epsilon = epsilon
         self._dim = self._model.dims()
         self._theta = init or np.random.normal(size=self._dim)
-        self._log_p_theta, logpgrad  = self._model.log_density_gradient(
-            self._theta
-        )
+        self._log_p_theta, logpgrad = self._model.log_density_gradient(self._theta)
         self._log_p_grad_theta = np.asanyarray(logpgrad)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Sample]:
         return self
 
-    def __next__(self):
+    def __next__(self) -> Sample:
         return self.sample()
 
-    def sample(self) -> Tuple[NDArray[np.float64], float]:
+    def sample(self) -> Sample:
         theta_prop = (
             self._theta
             + self._epsilon * self._log_p_grad_theta
@@ -36,7 +36,7 @@ class MALA:
 
         lp_prop, grad_prob_al = self._model.log_density_gradient(theta_prop)
         grad_prop = np.asanyarray(grad_prob_al)
-        
+
         if np.log(np.random.random()) < lp_prop + self.correction(
             self._theta, theta_prop, grad_prop
         ) - self._log_p_theta - self.correction(
@@ -48,6 +48,6 @@ class MALA:
 
         return self._theta, self._log_p_theta
 
-    def correction(self, theta_prime, theta, grad_theta) -> float:
+    def correction(self, theta_prime: NDArray[np.float64], theta: NDArray[np.float64], grad_theta: NDArray[np.float64]) -> float:
         x = theta_prime - theta - self._epsilon * grad_theta
         return (-0.25 / self._epsilon) * x.dot(x)
