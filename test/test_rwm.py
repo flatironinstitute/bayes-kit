@@ -12,8 +12,8 @@ def test_rwm():
     draws = np.array([rwm.sample()[0] for _ in range(M)])
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
-    np.testing.assert_allclose(mean, 0, atol=0.1)
-    np.testing.assert_allclose(var, 1, atol=0.1)
+    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.1)
 
     accept = M - (draws[:M-1] == draws[1:]).sum()
     print(f"{accept=}")
