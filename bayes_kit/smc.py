@@ -66,7 +66,7 @@ def importance_resample(
     M = thetas.shape[0]
     idxs = np.random.choice(M, size=M, replace=True, p=weights / weights.sum())
 
-    return thetas[idxs]
+    return thetas[idxs] # type: ignore
 
 
 def metropolis_kernel(scale: float) -> Kernel:

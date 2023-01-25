@@ -1,9 +1,9 @@
-from models.std_normal import StdNormal
+from test.models.std_normal import StdNormal
 from bayes_kit.hmc import HMCDiag
 import numpy as np
 
 
-def test_hmc_diag():
+def test_hmc_diag() -> None:
     # init with draw from posterior
     init = np.random.normal(loc=0, scale=1, size=[1])
     model = StdNormal()
