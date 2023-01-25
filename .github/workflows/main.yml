@@ -26,8 +26,14 @@ jobs:
 
       - name: Install package
         run: |
-          pip install .[test]
+          pip install -e .[test]
 
       - name: Run tests
         run: |
-          pytest -v
+          pytest -v --cov=bayes_kit test/
+
+      - name: Upload codecoverage
+        continue-on-error: true
+        run: |
+          pip install codecov
+          codecov
