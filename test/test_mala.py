@@ -16,8 +16,8 @@ def test_mala_std_normal():
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
 
-    np.testing.assert_allclose(mean, 0, atol=0.1)
-    np.testing.assert_allclose(var, 1, atol=0.1)
+    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.1)
 
 
 def test_mala_beta_binom():
@@ -33,5 +33,5 @@ def test_mala_beta_binom():
     print(f"{draws[1:10]=}")
     print(f"{mean=}  {var=}")
 
-    np.testing.assert_allclose(mean, 7 / 25, atol=0.1)
-    np.testing.assert_allclose(var, 7 * 18 / (25**2 * 26), atol=0.1)
+    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.03)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.005)
