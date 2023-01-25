@@ -26,11 +26,11 @@ jobs:
 
       - name: Install package
         run: |
-          pip install .[test]
+          pip install -e .[test]
 
       - name: Run tests
         run: |
-          pytest -v --cov=bayes_kit
+          pytest -v --cov=bayes_kit test/
 
       - name: Upload codecoverage
         continue-on-error: true
