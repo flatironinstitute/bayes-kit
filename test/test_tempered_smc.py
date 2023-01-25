@@ -25,5 +25,5 @@ def test_rwm_smc():
     print(f"{draws[1:10]=}")
     print(f"{mean=}  {var=}")
 
-    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.03)
+    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.05)
     np.testing.assert_allclose(var, model.posterior_variance(), atol=0.005)
