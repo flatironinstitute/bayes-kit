@@ -3,7 +3,7 @@ from bayes_kit.smc import TemperedLikelihoodSMC, metropolis_kernel
 import numpy as np
 
 
-def test_rwm_smc():
+def test_rwm_smc_beta_binom():
     model = BetaBinom()
     M = 75
     N = 10

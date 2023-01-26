@@ -1,4 +1,4 @@
-from typing import Iterator, Optional, Tuple
+from typing import Iterator, Optional, Union
 from numpy.typing import NDArray
 import numpy as np
 
@@ -13,11 +13,13 @@ class MALA:
         model: GradModel,
         epsilon: float,
         init: Optional[NDArray[np.float64]] = None,
+        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None
     ):
         self._model = model
         self._epsilon = epsilon
         self._dim = self._model.dims()
-        self._theta = init or np.random.normal(size=self._dim)
+        self._rand = np.random.default_rng(seed)
+        self._theta = init or self._rand.normal(size=self._dim)
         self._log_p_theta, logpgrad = self._model.log_density_gradient(self._theta)
         self._log_p_grad_theta = np.asanyarray(logpgrad)
 
@@ -31,13 +33,13 @@ class MALA:
         theta_prop = (
             self._theta
             + self._epsilon * self._log_p_grad_theta
-            + np.sqrt(2 * self._epsilon) * np.random.normal(size=self._model.dims())
+            + np.sqrt(2 * self._epsilon) * self._rand.normal(size=self._model.dims())
         )
 
         lp_prop, grad_prob_al = self._model.log_density_gradient(theta_prop)
         grad_prop = np.asanyarray(grad_prob_al)
 
-        if np.log(np.random.random()) < lp_prop + self.correction(
+        if np.log(self._rand.random()) < lp_prop + self.correction(
             self._theta, theta_prop, grad_prop
         ) - self._log_p_theta - self.correction(
             theta_prop, self._theta, self._log_p_grad_theta
