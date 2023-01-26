@@ -35,3 +35,17 @@ def test_mala_beta_binom() -> None:
 
     np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.05)
     np.testing.assert_allclose(var, model.posterior_variance(), atol=0.005)
+
+
+def test_mala_repr() -> None:
+    init = np.random.normal(loc=0, scale=1, size=[1])
+    model = StdNormal()
+
+    mala_1 = MALA(model, 0.3, init, seed=123)
+    mala_2 = MALA(model, 0.3, init, seed=123)
+
+    M = 25
+    draws_1 = np.array([mala_1.sample()[0] for _ in range(M)])
+    draws_2 = np.array([mala_2.sample()[0] for _ in range(M)])
+
+    np.testing.assert_array_equal(draws_1, draws_2)

@@ -2,7 +2,7 @@ from test.models.std_normal import StdNormal
 from bayes_kit.rwm import RandomWalkMetropolis
 import numpy as np
 
-def test_rwm() -> None:
+def test_rwm_std_normal() -> None:
     # init with draw from posterior
     init = np.random.normal(loc=0, scale=1, size=[1])
     model = StdNormal()
@@ -21,3 +21,21 @@ def test_rwm() -> None:
     print(f"{mean=}  {var=}")
 
 
+def test_rwm_repr() -> None:
+
+    init = np.random.normal(loc=0, scale=1, size=[1])
+    model = StdNormal()
+
+    prop_gen_1 = np.random.default_rng(123)
+    proposal_1 = lambda theta: prop_gen_1.normal(loc=theta, scale=4)
+    rwm_1 = RandomWalkMetropolis(model, proposal_1, init, seed=456)
+
+    prop_gen_2 = np.random.default_rng(123)
+    proposal_2 = lambda theta: prop_gen_2.normal(loc=theta, scale=4)
+    rwm_2 = RandomWalkMetropolis(model, proposal_2, init, seed=456)
+
+    M = 25
+    draws_1 = np.array([rwm_1.sample()[0] for _ in range(M)])
+    draws_2 = np.array([rwm_2.sample()[0] for _ in range(M)])
+
+    np.testing.assert_array_equal(draws_1, draws_2)

@@ -1,4 +1,4 @@
-from typing import Callable, Iterator
+from typing import Callable, Iterator, Union
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
@@ -55,6 +55,7 @@ class TemperedLikelihoodSMC:
         self.thetas = importance_resample(self.thetas, lpminus1, lp)
 
 
+# TODO(bward): factor out
 def importance_resample(
     thetas: Vector, lpminus1: DensityFunction, lp: DensityFunction
 ) -> Vector:
@@ -62,13 +63,14 @@ def importance_resample(
         np.apply_along_axis(lp, axis=1, arr=thetas)
         - np.apply_along_axis(lpminus1, axis=1, arr=thetas)
     )
-    # note: should use random Generator object
     M = thetas.shape[0]
+    # TODO(bward): should use random Generator object
     idxs = np.random.choice(M, size=M, replace=True, p=weights / weights.sum())
 
-    return thetas[idxs] # type: ignore
+    return thetas[idxs]  # type: ignore
 
 
+# TODO(bward): factor out/reuse Metropolis sampler
 def metropolis_kernel(scale: float) -> Kernel:
     def proposal_rng(theta: Vector) -> Vector:
         return np.random.normal(loc=theta, scale=scale)
