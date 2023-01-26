@@ -16,14 +16,7 @@ def test_rwm_std_normal() -> None:
     np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
     np.testing.assert_allclose(var, model.posterior_variance(), atol=0.1)
 
-    accept = M - (draws[: M - 1] == draws[1:]).sum()
-    print(f"{accept=}")
-    print(f"{draws[1:10]=}")
-    print(f"{mean=}  {var=}")
-
-
 def test_rwm_repr() -> None:
-
     init = np.random.normal(loc=0, scale=1, size=[1])
     model = StdNormal()
 
