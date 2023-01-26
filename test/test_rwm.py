@@ -2,6 +2,7 @@ from test.models.std_normal import StdNormal
 from bayes_kit.rwm import RandomWalkMetropolis
 import numpy as np
 
+
 def test_rwm_std_normal() -> None:
     # init with draw from posterior
     init = np.random.normal(loc=0, scale=1, size=[1])
@@ -15,7 +16,7 @@ def test_rwm_std_normal() -> None:
     np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
     np.testing.assert_allclose(var, model.posterior_variance(), atol=0.1)
 
-    accept = M - (draws[:M-1] == draws[1:]).sum()
+    accept = M - (draws[: M - 1] == draws[1:]).sum()
     print(f"{accept=}")
     print(f"{draws[1:10]=}")
     print(f"{mean=}  {var=}")

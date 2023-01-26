@@ -13,7 +13,7 @@ class MALA:
         model: GradModel,
         epsilon: float,
         init: Optional[NDArray[np.float64]] = None,
-        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None
+        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
     ):
         self._model = model
         self._epsilon = epsilon
@@ -50,6 +50,12 @@ class MALA:
 
         return self._theta, self._log_p_theta
 
-    def correction(self, theta_prime: NDArray[np.float64], theta: NDArray[np.float64], grad_theta: NDArray[np.float64]) -> float:
+    def correction(
+        self,
+        theta_prime: NDArray[np.float64],
+        theta: NDArray[np.float64],
+        grad_theta: NDArray[np.float64],
+    ) -> float:
         x = theta_prime - theta - self._epsilon * grad_theta
-        return (-0.25 / self._epsilon) * x.dot(x)
+        dot_self: float = x.dot(x)
+        return (-0.25 / self._epsilon) * dot_self

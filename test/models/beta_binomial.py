@@ -26,10 +26,10 @@ class BetaBinom:
         return self.log_likelihood(theta) + self.log_prior(theta)
 
     def log_prior(self, theta: npt.NDArray[np.float64]) -> float:
-        return stats.beta.logpdf(theta[0], self.alpha, self.beta)
+        return stats.beta.logpdf(theta[0], self.alpha, self.beta)  # type: ignore # scipy is not typed
 
     def log_likelihood(self, theta: npt.NDArray[np.float64]) -> float:
-        return stats.binom.logpmf(self.x, self.N, theta[0])
+        return stats.binom.logpmf(self.x, self.N, theta[0])  # type: ignore # scipy is not typed
 
     def initial_state(self, _: int) -> npt.NDArray[np.float64]:
         return self._rand.beta(self.alpha, self.beta, size=1)

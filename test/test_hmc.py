@@ -18,6 +18,7 @@ def test_hmc_diag_std_normal() -> None:
     np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
     np.testing.assert_allclose(var, model.posterior_variance(), atol=0.1)
 
+
 def test_hmc_diag_repr() -> None:
     init = np.random.normal(loc=0, scale=1, size=[1])
     model = StdNormal()
