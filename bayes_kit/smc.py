@@ -39,10 +39,10 @@ class TemperedLikelihoodSMC:
         return n / self.N
 
     def transition(self, n: int) -> None:
-        def lpminus1(theta):
+        def lpminus1(theta: Vector) -> float:
             return self.log_likelihood(theta) * self.time(n - 1) + self.log_prior(theta)
 
-        def lp(theta):
+        def lp(theta: Vector) -> float:
             return self.log_likelihood(theta) * self.time(n) + self.log_prior(theta)
 
         # note: try to do this in parallel

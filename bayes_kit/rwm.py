@@ -1,8 +1,10 @@
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Iterator, Optional, Union
 from numpy.typing import NDArray, ArrayLike
 import numpy as np
 
 from .model_types import LogDensityModel
+
+Sample = tuple[NDArray[np.float64], float]
 
 
 class RandomWalkMetropolis:
@@ -20,13 +22,13 @@ class RandomWalkMetropolis:
         self._theta = init or self._rand.normal(size=self._dim)
         self._log_p_theta = self._model.log_density(self._theta)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Sample]:
         return self
 
-    def __next__(self):
+    def __next__(self) -> Sample:
         return self.sample()
 
-    def sample(self) -> Tuple[NDArray[np.float64], float]:
+    def sample(self) -> Sample:
         # does not include initial value as first draw
         theta_star = np.asanyarray(self._proposal_rng(self._theta))
         log_p_theta_star = self._model.log_density(theta_star)

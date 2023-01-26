@@ -16,7 +16,7 @@ def rhat(chains: list[SeqType]) -> FloatType:
     R-hat was introduced in this paper.
 
     Gelman, A. and Rubin, D. B., 1992. Inference from iterative simulation using
-    multiple sequences. Statistical Science, 457--472. 
+    multiple sequences. Statistical Science, 457--472.
 
     Parameters:
     chains: list of univariate Markov chains
@@ -33,7 +33,7 @@ def rhat(chains: list[SeqType]) -> FloatType:
     mean_chain_length = np.mean(chain_lengths)
     means = [np.mean(chain) for chain in chains]
     vars = [np.var(chain, ddof=1) for chain in chains]
-    r_hat = np.sqrt(
+    r_hat: np.float64 = np.sqrt(
         (mean_chain_length - 1) / mean_chain_length + np.var(means, ddof=1) / np.mean(vars)
     )
     return r_hat

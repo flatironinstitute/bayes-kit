@@ -15,8 +15,8 @@ class StdNormal:
     ) -> tuple[float, npt.NDArray[np.float64]]:
         return -0.5 * params_unc[0] * params_unc[0], -params_unc
 
-    def posterior_mean(self):
+    def posterior_mean(self) -> float:
         return 0
 
-    def posterior_variance(self):
+    def posterior_variance(self) -> float:
         return 1

@@ -1,8 +1,10 @@
-from typing import Optional, Tuple, Union
+from typing import Iterator, Optional, Union
 from numpy.typing import NDArray
 import numpy as np
 
 from .model_types import GradModel
+
+Sample = tuple[NDArray[np.float64], float]
 
 
 class HMCDiag:
@@ -13,8 +15,7 @@ class HMCDiag:
         steps: int,
         metric_diag: Optional[NDArray[np.float64]] = None,
         init: Optional[NDArray[np.float64]] = None,
-        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None
-
+        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
     ):
         self._model = model
         self._dim = self._model.dims()
@@ -24,20 +25,19 @@ class HMCDiag:
         self._rand = np.random.default_rng(seed)
         self._theta = init or self._rand.normal(size=self._dim)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Sample]:
         return self
 
-    def __next__(self):
+    def __next__(self) -> Sample:
         return self.sample()
 
     def joint_logp(self, theta: NDArray[np.float64], rho: NDArray[np.float64]) -> float:
-        return self._model.log_density(theta) - 0.5 * np.dot(
-            rho, np.multiply(self._metric, rho)
-        )
+        adj: float = 0.5 * np.dot(rho, self._metric * rho)
+        return self._model.log_density(theta) - adj
 
     def leapfrog(
         self, theta: NDArray[np.float64], rho: NDArray[np.float64]
-    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         # TODO(bob-carpenter): refactor to share non-initial and non-final updates
         for n in range(self._steps):
             lp, grad = self._model.log_density_gradient(theta)
@@ -47,7 +47,7 @@ class HMCDiag:
             rho = rho_mid + 0.5 * self._stepsize * np.multiply(self._metric, grad)
         return (theta, rho)
 
-    def sample(self) -> Tuple[NDArray[np.float64], float]:
+    def sample(self) -> Sample:
         rho = self._rand.normal(size=self._dim)
         logp = self.joint_logp(self._theta, rho)
         theta_prop, rho_prop = self.leapfrog(self._theta, rho)
