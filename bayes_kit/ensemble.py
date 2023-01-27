@@ -1,9 +1,10 @@
-from typing import Callable, Optional, Tuple
+from typing import Callable, Iterator, Optional, Tuple
 from numpy.typing import NDArray
 import numpy as np
 
 from .model_types import LogDensityModel
 
+Sample = NDArray[np.float64]
 
 class AffineInvariantWalker:
     """
@@ -29,7 +30,7 @@ class AffineInvariantWalker:
             
         Parameters:
         model: class used to evaluate log densities
-        a: bounds on proposal (default 1)
+        a: bounds on proposal (default 2)
         walkers: an even number of walkers to use (default dimensionality of `model * 2`)
         init: `walker` x `dimensio`n array of initial positions (defaults to standard normal)
 
@@ -39,35 +40,35 @@ class AffineInvariantWalker:
         """
         self._model = model
         self._dim = self._model.dims()
-        if a != None and a < 1:
+        if a != None and np.float64(a) < 1:
             raise ValueError(f"stretch bound must be greater than or equal to 1; found {a=}")
-        self._a = a or 1
-        self._sqrt_a = np.sqrt(a)
+        self._a = np.float64(a or 2.0)
+        self._sqrt_a = np.sqrt(np.float64(a))
         self._inv_sqrt_a = 1 / self._sqrt_a
-        if walkers != None and (walkers < 2 or walkers % 2 != 0) :
+        self._walkers = np.int64(walkers or 2 * self._dim)
+        if self._walkers < 2 or self._walkers % 2 != 0:
             raise ValueError(f"walkers must be strictly positive, even integer; found {walkers=}")
-        self._walkers = walkers or 2 * self._dim
         self._halfwalkers = self._walkers // 2
-        self._drawshape = (self._walkers, self._dim)
-        if init != None and init.shape != self._drawshape:
-            raise ValueError(f"init must be shape of draw {self._drawshape}; found {init.shape=}")
-        self._thetas = init or np.random.normal(size=self._drawshape)
-        self._firsthalf = range(0, self._halfwalkers)
-        self._secondhalf = range(self._halfwalkers, self._walkers)
+        self._drawshape = (int(self._walkers), self._dim)
+        self._thetas = np.asarray(init or np.random.normal(size=self._drawshape))
+        if self._thetas.shape != self._drawshape:
+            raise ValueError(f"init must be shape of draw {self._drawshape}; found {self._thetas.shape=}")
+        self._firsthalf = range(0, int(self._halfwalkers))
+        self._secondhalf = range(int(self._halfwalkers), int(self._walkers))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Sample]:
         return self
 
-    def __next__(self):
-        return self.sample
+    def __next__(self) -> Sample:
+        return self.sample()
 
-    def draw_z(self):
+    def draw_z(self) -> Sample:
         """Return random draw z in (1/a, a) with p(z) propto 1 / sqrt(z)"""
-        return np.square(np.random.uniform(self._inv_sqrt_a, self._sqrt_a))
+        return np.asarray(np.square(np.random.uniform(self._inv_sqrt_a, self._sqrt_a)))
 
-    def stretch_move(self, theta_k: NDArray[np.float64], theta_j: NDArray[np.float64]):
+    def stretch_move(self, theta_k: NDArray[np.float64], theta_j: NDArray[np.float64]) -> Sample:
         z = self.draw_z()
-        theta_star = theta_j + z * (theta_k - theta_j)  # (1 - z) * theta_j + z * theta_k
+        theta_star = np.asarray(theta_j + z * (theta_k - theta_j))  # (1 - z) * theta_j + z * theta_k
         print(f"{theta_k=}  {theta_j=}  {z=}  {theta_star=}")
         log_q = (self._dim - 1) * np.log(z) + self._model.log_density(theta_star) - self._model.log_density(theta_k)
         log_u = np.log(np.random.uniform())
@@ -76,7 +77,7 @@ class AffineInvariantWalker:
             return theta_star
         return theta_k
 
-    def sample(self) -> NDArray[np.float64]:
+    def sample(self) -> Sample:
         print(f"IN: {self._thetas=}")
         js = np.random.choice(self._secondhalf, size=self._halfwalkers, replace=False)
         for k in self._firsthalf:

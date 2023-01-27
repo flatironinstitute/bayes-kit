@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 
 FloatType = np.float64
-IntType = np.int64
+IntType = int
 VectorType = npt.NDArray[FloatType]
 
 def autocorr_fft(chain: VectorType) -> VectorType:
@@ -22,7 +22,7 @@ def autocorr_fft(chain: VectorType) -> VectorType:
     fft = np.fft.fft(ndata, size)
     pwr = np.abs(fft) ** 2
     N = len(ndata)
-    acorr = np.fft.ifft(pwr).real / var / N
+    acorr: VectorType = np.fft.ifft(pwr).real / var / N
     return acorr
 
 def autocorr_np(chain: VectorType) -> VectorType:
@@ -39,7 +39,7 @@ def autocorr_np(chain: VectorType) -> VectorType:
     chain_ctr = chain - np.mean(chain)
     N = len(chain_ctr)
     acorrN = np.correlate(chain_ctr, chain_ctr, "full")[N - 1 :]
-    return acorrN / N
+    return np.asarray(acorrN / N)
 
 def autocorr(chain: VectorType) -> VectorType:
     """
@@ -92,9 +92,9 @@ def ess_ipse(chain: VectorType) -> FloatType:
         raise ValueError(f"ess requires len(chains) >=4, but {len(chain) = }")
     acor = autocorr(chain)
     n = first_neg_pair_start(acor)
-    sigma_sq_hat = acor[0] + 2 * sum(acor[1:n])
+    sigma_sq_hat = acor[0] + 2 * acor[1:n].sum()
     ess = len(chain) / sigma_sq_hat
-    return ess
+    return np.float64(ess)
 
 def ess_imse(chain: VectorType) -> FloatType:
     """
@@ -132,7 +132,7 @@ def ess_imse(chain: VectorType) -> FloatType:
     # end diff code
     sigma_sq_hat = acor[0] + 2 * accum
     ess = len(chain) / sigma_sq_hat
-    return ess
+    return np.float64(ess)
 
 def ess(chain: VectorType) -> FloatType:
     """
