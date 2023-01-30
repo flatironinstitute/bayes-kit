@@ -1,4 +1,4 @@
-from typing import Callable, Iterator, Optional, Tuple
+from typing import Any, Callable, Iterator, Optional, Tuple
 from numpy.typing import NDArray
 import numpy as np
 
@@ -7,16 +7,27 @@ from .model_types import LogDensityModel
 Sample = NDArray[np.float64]
 
 class AffineInvariantWalker:
-    """
-    An implementation of the affine-invariant ensemble sampler of
-    Goodman and Weare (2010).  
+    """The affine-invariant ensemble of Goodman and Weare (2010).  
 
     References:
-    Goodman, J. and Weare, J., 2010. Ensemble samplers with affine invariance.
-    *Communications in Applied Mathematics and Computational Science*
-    5(1):65--80.
-    """
+        Goodman, J. and Weare, J., 2010. Ensemble samplers with affine invariance.
+        *Communications in Applied Mathematics and Computational Science*
+        5(1):65--80.
 
+    Attributes:
+        _model (LogDensityModel): The statistical model being sampled.
+        _dim (int): The number of model dimensions.
+        _a (np.float64): The upper bound of interpolation ratio sampling (lower bound is inverse).
+        _sqrt_a (np.float64): The square root of `_a`.
+        _inv_sqrt_a (np.float64): The inverse square root of `_a`.
+        _walkers (np.int64): The number of ensemble members.
+        _half_walkers (np.int64): Half the number of walkers.
+        _drawshape (list(int)): The number of walks by number of dimensions.
+        _thetas (NDArray[np.float64]): The ensemble of draws (`_walkers` x `_dim`).
+        _lps (NDArray[np.float64]): The vector of log densities (`_walkers x 1`).
+        _firsthalf (NDArray[np.float64]): A view of the first half of `_thetas`.
+        _secondhalf (NDArray[np.float64]): A view of the second half of `_thetas`.
+    """
     def __init__(
             self,
             model: LogDensityModel,
@@ -24,19 +35,20 @@ class AffineInvariantWalker:
             walkers: Optional[int] = None,
             init: Optional[NDArray[np.float64]] = None
         ):
-        """
-        Initialize the sampler with a log density model, and optionally
-        proposal bounds, number of walkers and initial parameter values.
-            
-        Parameters:
-        model: class used to evaluate log densities
-        a: bounds on proposal (default 2)
-        walkers: an even number of walkers to use (default dimensionality of `model * 2`)
-        init: `walker` x `dimensio`n array of initial positions (defaults to standard normal)
+        """Initialize the sampler with model, and optionally bounds, size, and initial values.
+        
+        The class instance stores the model, bounds on the proposal on the square root scale,
+        and the walkers.  The initialization is used for the value of the parameters *before* the
+        first draw.  The initialization will *not* be returned as one of the draws.
 
-        Throws:
-        ValueError: if `a` is provided and not >= 1, `walker`s is provided and not strictly positive and even,
-        or if the `init` is provided and is not an `NDArray` of shape `walker` x `dimension`
+        Args:
+            model (LogDensityModel): class used to evaluate log densities
+            a (float): bounds on proposal (default 2)
+            walkers (int): an even number of walkers to use (default dimensionality of `model * 2`)
+            init (NDArray[np.float64]): `walker` x `dimension` array of initial positions
+
+        Raises:
+        ValueError: If `a` is provided and is not greater than or equal to 1, `walker`s is provided and not strictly positive and even, or if the `init` is provided and is not an `NDArray` of shape `walker` x `dimension`
         """
         self._model = model
         self._dim = self._model.dims()
@@ -51,41 +63,58 @@ class AffineInvariantWalker:
         self._halfwalkers = self._walkers // 2
         self._drawshape = (int(self._walkers), self._dim)
         self._thetas = np.asarray(init or np.random.normal(size=self._drawshape))
+        self._lps = [self._model.log_density(theta) for theta in self._thetas]
         if self._thetas.shape != self._drawshape:
             raise ValueError(f"init must be shape of draw {self._drawshape}; found {self._thetas.shape=}")
         self._firsthalf = range(0, int(self._halfwalkers))
         self._secondhalf = range(int(self._halfwalkers), int(self._walkers))
 
     def __iter__(self) -> Iterator[Sample]:
+        """Return an infinite iterator for sampling.
+
+        Returns:
+            An iterator generating samples.
+        """
         return self
 
     def __next__(self) -> Sample:
+        """Return the next sample.
+
+        Returns:
+            The next sample.
+        """
         return self.sample()
 
     def draw_z(self) -> Sample:
-        """Return random draw z in (1/a, a) with p(z) propto 1 / sqrt(z)"""
-        return np.asarray(np.square(np.random.uniform(self._inv_sqrt_a, self._sqrt_a)))
+        """
+        Return a random draw of `z` in `(1/a, a)` with `p(z) propto 1 / sqrt(z)`.
 
-    def stretch_move(self, theta_k: NDArray[np.float64], theta_j: NDArray[np.float64]) -> Sample:
+        Returns:
+            A random draw of `z`.
+        """
+        draw: NDArray[np.float64] = np.square(np.random.uniform(self._inv_sqrt_a, self._sqrt_a))
+        return draw
+
+    def stretch_move(self, k: int, j: int) -> Any:
+        theta_k = self._thetas[k]
+        lp_theta_k = self._lps[k]
+        theta_j = self._thetas[j]
         z = self.draw_z()
         theta_star = np.asarray(theta_j + z * (theta_k - theta_j))  # (1 - z) * theta_j + z * theta_k
-        print(f"{theta_k=}  {theta_j=}  {z=}  {theta_star=}")
-        log_q = (self._dim - 1) * np.log(z) + self._model.log_density(theta_star) - self._model.log_density(theta_k)
+        lp_theta_star = self._model.log_density(theta_star)
+        log_q = (self._dim - 1) * np.log(z) + lp_theta_star - lp_theta_k
         log_u = np.log(np.random.uniform())
-        print(f"{log_q=}  {log_u=}")
         if log_u < log_q:
-            return theta_star
-        return theta_k
+            self._thetas[k] = theta_star
+            self._lps[k] = lp_theta_star
 
     def sample(self) -> Sample:
-        print(f"IN: {self._thetas=}")
         js = np.random.choice(self._secondhalf, size=self._halfwalkers, replace=False)
         for k in self._firsthalf:
-            self._thetas[k] = self.stretch_move(self._thetas[k], self._thetas[js[k]])
+            self.stretch_move(k, js[k])
         js = np.random.choice(self._firsthalf, size=self._halfwalkers, replace=False)
         for k in self._secondhalf:
-            self._thetas[k] = self.stretch_move(self._thetas[k], self._thetas[js[k - self._halfwalkers]])
-        print(f"OUT: {self._thetas=}")
+            self.stretch_move(k, js[k - self._halfwalkers])
         return self._thetas
 
 

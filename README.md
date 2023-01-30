@@ -4,6 +4,9 @@
 and posterior analysis with minimial dependencies for maximal
 flexiblity.
 
+This documentation is for end users; if you would like to contribute code, see
+[Contributing to BridgeStan](CONTRIBUTING.MD).
+
 ## Example
 
 The following example defines a model `StdNormal`, samples 1000 draws

@@ -29,10 +29,11 @@ def rhat(chains: list[SeqType]) -> FloatType:
     """
     if len(chains) < 2:
         raise ValueError(f"rhat requires len(chains) >= 2, but {len(chains) = }")
-    chain_lengths = [len(np.asarray(chain)) for chain in chains]
+    chains_array = [np.asarray(chain) for chain in chains]
+    chain_lengths = [len(chain) for chain in chains_array]
     mean_chain_length = np.mean(chain_lengths)
-    means = [np.mean(np.asarray(chain)) for chain in chains]
-    vars = [np.var(np.asarray(chain), ddof=1) for chain in chains]
+    means = [np.mean(chain) for chain in chains_array]
+    vars = [np.var(chain, ddof=1) for chain in chains_array]
     r_hat: np.float64 = np.sqrt(
         (mean_chain_length - 1) / mean_chain_length + np.var(means, ddof=1) / np.mean(vars)
     )
