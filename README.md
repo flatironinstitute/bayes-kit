@@ -113,8 +113,6 @@ where the temperature `t[n]` runs from 0 to 1 across iterations.
 `bayes-kit` only depends on a single external package,
 
 * [NumPy](https://numpy.org).
-https://mail.google.com/mail/u/0/#inbox
-
 
 ## Licensing
 
