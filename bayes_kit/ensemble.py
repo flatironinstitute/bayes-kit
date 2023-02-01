@@ -17,7 +17,7 @@ class AffineInvariantWalker:
     Attributes:
         _model (LogDensityModel): The statistical model being sampled.
         _dim (int): The number of model dimensions.
-        _a (np.float64): The upper bound of interpolation ratio sampling (lower bound is inverse).
+        _a (np.float64): The upper bound of interpolation ratio sampling (must be > 1, default 2).
         _sqrt_a (np.float64): The square root of `_a`.
         _inv_sqrt_a (np.float64): The inverse square root of `_a`.
         _num_walkers (np.int64): The number of ensemble members.
@@ -48,32 +48,48 @@ class AffineInvariantWalker:
         one of the draws.
 
         Arguments:
-            model (LogDensityModel): class used to evaluate log densities
-            a (float): The bounds on the interpolation ratio proposal (default 2)
-            walkers (int): An even number of walkers to use (default dimensionality of `model * 2`)
-            init (NDArray[np.float64]): `walker` x `dimension` array of initial positions.
-            seed (Union[None, int, np.random.BitGenerator, np.random.Generator]): Pseudo-RNG seed or generator.
+            model (LogDensityModel): The class used to evaluate log densities.
+            a (Union[None, float]): The bounds on the interpolation ratio proposal (default 2).
+            num_walkers (Union[None, int]): An even number of walkers to use (default dimensionality of `model * 2`).
+            init (Union[None, NDArray[np.float64]]): An array of shape `walker` x `dimension` of initial values (default standard normal).
+            seed (Union[None, int, np.random.BitGenerator, np.random.Generator]): Pseudo-RNG seed or generator (default system generated).
 
         Raises:
             ValueError: If `a` is provided and is not greater than or equal to 1, `walker`s is provided and not strictly positive and even, or if the `init` is provided and is not an `NDArray` of shape `walker` x `dimension`
         """
+        # if not isinstance(model, LogDensityModel):
+        #     raise TypeError("model must follow the protocol LogDensityModel")
+        if not (a is None or isinstance(a, float) or isinstance(a, int)):
+            raise TypeError(f"a must be None, float, or int, found {a=}")
+        if not (num_walkers is None or isinstance(num_walkers, int)):
+            raise TypeError(f"num_walkers must be int, found {type(num_walkers)=}")
+        if not (init is None or isinstance(init, np.ndarray)):
+            raise TypeError("init must be None or NDArray")
+        if not (seed is None or isinstance(seed, int) or isinstance(seed, np.random.BitGenerator) or isinstance(seed, np.random.Generator)):
+            raise TypeError("seed must be None, int, np.random.BitGenerator, or np.random.Generator; found {type(seed)=}")
         self._model = model
         self._dim = self._model.dims()
-        if a != None and np.float64(a) < 1:
+        if a != None and np.float64(a) <= 1:
             raise ValueError(f"stretch bound must be greater than or equal to 1; found {a=}")
         self._a = np.float64(a or 2.0)
-        self._sqrt_a = np.sqrt(np.float64(a))
+        self._sqrt_a = np.sqrt(self._a)
         self._inv_sqrt_a = 1 / self._sqrt_a
-        self._num_walkers = num_walkers or 2 * self._dim
-        if self._num_walkers < 2 or self._num_walkers % 2 != 0:
-            raise ValueError(f"number of walkers must be strictly positive, even integer; found {num_walkers=}")
+        if num_walkers is None:
+            self._num_walkers = 2 * self._dim
+        else:
+            if num_walkers < 2 or num_walkers % 2 != 0:
+                raise ValueError(f"number of walkers must be strictly positive, even integer; found {num_walkers=}")
+            self._num_walkers = num_walkers
         self._half_num_walkers = self._num_walkers // 2
         self._drawshape = (int(self._num_walkers), self._dim)
         self._rng = np.random.default_rng(seed)
-        self._thetas : NDArray[np.float64] = init or self._rng.normal(size=self._drawshape)
+        if init is None:
+            self._thetas = self._rng.normal(size=self._drawshape)
+        else:
+            if (init.shape != self._drawshape):
+                raise ValueError(f"init must be shape of draw {self._drawshape}; found {init.shape=}")
+            self._thetas = init
         self._lp_thetas = [self._model.log_density(theta) for theta in self._thetas]
-        if self._thetas.shape != self._drawshape:
-            raise ValueError(f"init must be shape of draw {self._drawshape}; found {self._thetas.shape=}")
         self._first_range = range(0, int(self._half_num_walkers))
         self._second_range = range(int(self._half_num_walkers), int(self._num_walkers))
 
