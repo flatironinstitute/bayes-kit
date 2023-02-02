@@ -153,8 +153,6 @@ the scale of the distribution of normally distributed error.
 `bayes-kit` only depends on a single external package,
 
 * [NumPy](https://numpy.org).
-https://mail.google.com/mail/u/0/#inbox
-
 
 ## Licensing
 
