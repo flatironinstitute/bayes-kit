@@ -126,9 +126,9 @@ def ess_imse(chain: VectorType) -> FloatType:
     accum = prev_min
     i = 3
     while i + 1 < n:
-        minprev = min(prev_min, acor[i] + acor[i + 1])
-        accum = accum + minprev
-        i = i + 2
+        prev_min = min(prev_min, acor[i] + acor[i + 1])
+        accum = accum + prev_min
+        i += 2
     # end diff code
     sigma_sq_hat = acor[0] + 2 * accum
     ess = len(chain) / sigma_sq_hat
