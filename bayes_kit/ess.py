@@ -5,7 +5,7 @@ FloatType = np.float64
 IntType = np.int64
 VectorType = npt.NDArray[FloatType]
 
-def autocorr_fft(chain: VectorType) -> VectorType:
+def autocorr(chain: VectorType) -> VectorType:
     """
     Return sample autocorrelations at all lags for the specified sequence.
     Algorithmically, this function calls a fast Fourier transform (FFT).
@@ -23,36 +23,7 @@ def autocorr_fft(chain: VectorType) -> VectorType:
     pwr = np.abs(fft) ** 2
     N = len(ndata)
     acorr = np.fft.ifft(pwr).real / var / N
-    return acorr
-
-def autocorr_np(chain: VectorType) -> VectorType:
-    """
-    Return sample autocorrelations at all lags for the specified sequence.
-    Algorithmically, this function delegates to the Numpy `correlation()` function.
-
-    Parameters:
-    chain: sequence whose autocorrelation is returned
-
-    Returns:
-    autocorrelation estimates at all lags for the specified sequence
-    """
-    chain_ctr = chain - np.mean(chain)
-    N = len(chain_ctr)
-    acorrN = np.correlate(chain_ctr, chain_ctr, "full")[N - 1 :]
-    return acorrN / N
-
-def autocorr(chain: VectorType) -> VectorType:
-    """
-    Return sample autocorrelations at all lags for the specified sequence.
-    Algorithmically, this function delegates to `autocorr_fft`.
-
-    Parameters:
-    chain: sequence whose autocorrelation is returned
-
-    Returns:
-    autocorrelation estimates at all lags for the specified sequence
-    """
-    return autocorr_fft(chain)
+    return acorr[0:N]
 
 def first_neg_pair_start(chain: VectorType) -> IntType:
     """

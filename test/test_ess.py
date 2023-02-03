@@ -1,5 +1,6 @@
 import numpy as np
 import bayes_kit as bk
+from bayes_kit.ess import autocorr
 from bayes_kit.ess import ess
 from bayes_kit.ess import ess_ipse
 from bayes_kit.ess import ess_imse
@@ -44,3 +45,8 @@ def test_ess_exceptions():
             ess_imse(v)
         with pt.raises(ValueError):
             ess_ipse(v)
+
+def test_autocorr():
+    y = np.asarray([1, 0, 0, 0])
+    ac = autocorr(y)
+    np.testing.assert_allclose(ac, np.asarray([1.000, -0.083, -0.167, -0.250]), atol=.001, rtol=0.001)
