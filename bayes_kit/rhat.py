@@ -1,8 +1,9 @@
 import numpy as np
+from numpy.typing import NDArray, ArrayLike
 
 FloatType = np.float64
-VectorType = np.typing.NDArray[FloatType]
-SeqType = np.typing.ArrayLike
+VectorType = NDArray[FloatType]
+SeqType = ArrayLike
 
 def rhat(chains: list[SeqType]) -> FloatType:
     """
