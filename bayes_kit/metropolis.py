@@ -28,7 +28,7 @@ def metropolis_accept_test(lp_proposal: float, lp_current: float, rand: np.rando
     # Since we already have log likelihoods, use:
     #       log(x/y) = log(x) - log(y)
     # and test
-    #       log(uniform_random) < log(x/y)
+    #       log(uniform_random) < log(x) - log(y)
     # instead of
     #       uniform_random < x/y
     log_acceptance_ratio = lp_proposal - lp_current
@@ -173,7 +173,19 @@ class MetropolisHastingsCombo:
         self._dim = self._model.dims()
         self._rand = np.random.default_rng(seed)
         self._proposal_fn = proposal_fn # TODO: type check this once during construction?
+
+        # If we were given a defined transition function, we will use it. Otherwise, we'll
+        # be using the Metropolis acceptance test (which assumes the transition probabilities are
+        # symmetric, and thus doesn't actually need the function at all). In that case,
+        # we set up a dummy function to make sure that the function remains defined.
         self._transition_lp_fn = transition_lp_fn if transition_lp_fn is not None else lambda x, y: 1
+
+        # When there's a transition function, use the Metropolis-Hastings acceptance test, which
+        # compensates for asymmetric transition probabilities--the case where
+        #   Pr(theta* | theta) != Pr(theta | theta*)
+        # Otherwise we assume it's symmetric, and use the Metropolis acceptance test.
+        # Either way, we store the test that will be used in self._accept_fn, so we always
+        # have it in the same place when drawing a sample.
         self._accept_fn = self._accept_metropolis_hastings if transition_lp_fn is not None else self._accept_metropolis
         self._theta = init or self._rand.normal(size=self._dim)
         self._log_p_theta = self._model.log_density(self._theta)
@@ -203,6 +215,9 @@ class MetropolisHastingsCombo:
         self._theta = theta
         self._log_p_theta = log_p_theta
 
+    # Note that the "proposal" parameter is unused here and not needed, but we want to keep
+    # the function signature the same for _accept_metropolis and _accept_metropolis_hastings
+    # so that they can be called the same way.
     def _accept_metropolis(self, lp_proposal: float, proposal: NDArray[np.float64]) -> bool:
         return metropolis_accept_test(lp_proposal, self._log_p_theta, self._rand)
 
