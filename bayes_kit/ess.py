@@ -1,29 +1,10 @@
 import numpy as np
 import numpy.typing as npt
+import bayes_kit.autocorr as autocorr
 
 FloatType = np.float64
 IntType = np.int64
 VectorType = npt.NDArray[FloatType]
-
-def autocorr(chain: VectorType) -> VectorType:
-    """
-    Return sample autocorrelations at all lags for the specified sequence.
-    Algorithmically, this function calls a fast Fourier transform (FFT).
-
-    Parameters:
-    chain: sequence whose autocorrelation is returned
-
-    Returns:
-    autocorrelation estimates at all lags for the specified sequence
-    """
-    size = 2 ** np.ceil(np.log2(2 * len(chain) - 1)).astype("int")
-    var = np.var(chain)
-    ndata = chain - np.mean(chain)
-    fft = np.fft.fft(ndata, size)
-    pwr = np.abs(fft) ** 2
-    N = len(ndata)
-    acorr = np.fft.ifft(pwr).real / var / N
-    return acorr[0:N]
 
 def first_neg_pair_start(chain: VectorType) -> IntType:
     """
@@ -42,7 +23,7 @@ def first_neg_pair_start(chain: VectorType) -> IntType:
     while n + 1 < N:
         if chain[n] + chain[n + 1] < 0:
             return n
-        n = n + 2
+        n += 2
     return N
 
 def ess_ipse(chain: VectorType) -> FloatType:
@@ -56,15 +37,15 @@ def ess_ipse(chain: VectorType) -> FloatType:
     Return:
     estimated effective sample size for the specified Markov chain
 
-    Throws:
-    ValueError: if there are fewer than 4 elements in the chain
+    Raises:
+        ValueError: if there are fewer than 4 elements in the chain
     """
     if len(chain) < 4:
-        raise ValueError(f"ess requires len(chains) >=4, but {len(chain) = }")
+        raise ValueError(f"ess requires len(chains) >= 4, but {len(chain)=}")
     acor = autocorr(chain)
     n = first_neg_pair_start(acor)
-    sigma_sq_hat = acor[0] + 2 * sum(acor[1:n])
-    ess = len(chain) / sigma_sq_hat
+    iat = 2 * acor[0:n].sum() - 1
+    ess = len(chain) / iat
     return ess
 
 def ess_imse(chain: VectorType) -> FloatType:
@@ -92,17 +73,17 @@ def ess_imse(chain: VectorType) -> FloatType:
         raise ValueError(f"ess requires len(chains) >=4, but {len(chain) = }")
     acor = autocorr(chain)
     n = first_neg_pair_start(acor)
-    prev_min = acor[1] + acor[2]
+    prev_min = acor[0] + acor[1]
     # convex minorization uses slow loop
     accum = prev_min
-    i = 3
+    i = 2
     while i + 1 < n:
         prev_min = min(prev_min, acor[i] + acor[i + 1])
         accum = accum + prev_min
         i += 2
     # end diff code
-    sigma_sq_hat = acor[0] + 2 * accum
-    ess = len(chain) / sigma_sq_hat
+    iat = 2 * accum - 1
+    ess = len(chain) / iat
     return ess
 
 def ess(chain: VectorType) -> FloatType:
