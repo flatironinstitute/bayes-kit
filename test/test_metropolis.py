@@ -12,6 +12,7 @@ from unittest.mock import Mock
 import numpy as np
 import scipy.stats as sst
 from numpy.typing import NDArray
+from unittest.mock import patch
 
 
 def test_metropolis_accept_test_accepts_more_likely_proposal() -> None:
@@ -255,3 +256,33 @@ def test_metropolis_hastings_reduces_to_metropolis() -> None:
     draws_from_mh = np.array([mh.sample()[0] for _ in range(M)])
 
     np.testing.assert_array_equal(draws_from_metropolis, draws_from_mh)
+
+
+def test_metropolis_hastings_iter_returns_self() -> None:
+    model = StdNormal()
+    proposal_fn = lambda x: 1
+    transition_lp_fn = lambda x, y: 1
+    mh = MetropolisHastings(model, proposal_fn, transition_lp_fn)
+    i = iter(mh)
+    assert i == mh
+
+
+# Don't actually try to sample anything, just confirm that the
+# sample method was called when iterating over the MetropolisHasting object
+@patch.object(MetropolisHastings, "sample")
+def test_metropolis_hastings_next_calls_sample(mock_sample) -> None:
+    model = StdNormal()
+    proposal_fn = lambda x: 1
+    transition_lp_fn = lambda x, y: 1
+    mh = MetropolisHastings(model, proposal_fn, transition_lp_fn)
+    _ = [next(mh) for i in range(1)]
+    mock_sample.assert_called_once()
+
+
+def test_metropolis_hastings_throws_when_proposal_fn_generates_wrong_type() -> None:
+    model = StdNormal()
+    proposal_fn = lambda x: "a"
+    transition_lp_fn = lambda x, y: 1
+    mh = MetropolisHastings(model, proposal_fn, transition_lp_fn)
+    with np.testing.assert_raises(TypeError):
+        _ = mh.sample()
