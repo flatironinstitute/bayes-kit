@@ -4,7 +4,6 @@ from test.models.skew_normal import SkewNormal
 from bayes_kit.metropolis import (
     Metropolis,
     MetropolisHastings,
-    MetropolisHastingsCombo,
     metropolis_accept_test,
     metropolis_hastings_accept_test,
 )
@@ -256,21 +255,3 @@ def test_metropolis_hastings_reduces_to_metropolis() -> None:
     draws_from_mh = np.array([mh.sample()[0] for _ in range(M)])
 
     np.testing.assert_array_equal(draws_from_metropolis, draws_from_mh)
-
-
-def test_mh_combo_std_normal() -> None:
-    # Just a sketch to demonstrate that the combo class also works
-    # Will convert the rest of the tests to use the combo if we settle on
-    # that implementation
-    M = 5000
-    model = StdNormal()
-    init = np.random.normal(loc=0, scale=1, size=[1])
-    proposal_fn = lambda theta: np.random.normal(loc=theta, scale=4)
-    metropolis = MetropolisHastingsCombo(model, proposal_fn=proposal_fn, init=init)
-
-    draws = np.array([metropolis.sample()[0] for _ in range(M)])
-    mean = draws.mean(axis=0)
-    var = draws.var(axis=0, ddof=1)
-
-    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
-    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.1)
