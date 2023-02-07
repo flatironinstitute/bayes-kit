@@ -5,6 +5,7 @@ FloatType = np.float64
 VectorType = NDArray[FloatType]
 SeqType = ArrayLike
 
+
 def rhat(chains: list[SeqType]) -> FloatType:
     """
     Return the potential scale reduction factor (R-hat) for a list of Markov chains.
@@ -35,6 +36,7 @@ def rhat(chains: list[SeqType]) -> FloatType:
     means = [np.mean(chain) for chain in chains]
     vars = [np.var(chain, ddof=1) for chain in chains]
     r_hat: np.float64 = np.sqrt(
-        (mean_chain_length - 1) / mean_chain_length + np.var(means, ddof=1) / np.mean(vars)
+        (mean_chain_length - 1) / mean_chain_length
+        + np.var(means, ddof=1) / np.mean(vars)
     )
     return r_hat

@@ -7,11 +7,7 @@ from numpy import float64
 
 
 class SkewNormal:
-    def __init__(
-        self,
-        a: float = 4,
-        loc: Union[float, NDArray[float64]] = 0
-    ) -> None:
+    def __init__(self, a: float = 4, loc: Union[float, NDArray[float64]] = 0) -> None:
         self.a = a
         self.loc = loc
 
@@ -27,13 +23,13 @@ class SkewNormal:
         raise NotImplementedError
 
     def posterior_mean(self) -> float:
-        mean: Union[float, NDArray[float64]] = sst.skewnorm.mean(self.a, loc=self.loc) # type: ignore # scipy is not typed
+        mean: Union[float, NDArray[float64]] = sst.skewnorm.mean(self.a, loc=self.loc)  # type: ignore # scipy is not typed
         if isinstance(mean, float):
             return mean
         return mean[0]
 
     def posterior_variance(self) -> float:
-        var: Union[float, NDArray[float64]] = sst.skewnorm.var(self.a, loc=self.loc) # type: ignore # scipy is not typed
+        var: Union[float, NDArray[float64]] = sst.skewnorm.var(self.a, loc=self.loc)  # type: ignore # scipy is not typed
         if isinstance(var, float):
             return var
         return var[0]

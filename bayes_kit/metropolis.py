@@ -9,7 +9,9 @@ Sample = tuple[NDArray[np.float64], float]
 # TODO: make some decision about typing for parameters
 
 
-def metropolis_accept_test(lp_proposal: float, lp_current: float, rand: np.random.Generator) -> bool:
+def metropolis_accept_test(
+    lp_proposal: float, lp_current: float, rand: np.random.Generator
+) -> bool:
     """
     Return whether to accept a proposed new state.
 
@@ -32,7 +34,7 @@ def metropolis_accept_test(lp_proposal: float, lp_current: float, rand: np.rando
     # instead of
     #       uniform_random < x/y
     log_acceptance_ratio = lp_proposal - lp_current
-    log_uniform_random: float  = np.log(rand.uniform())
+    log_uniform_random: float = np.log(rand.uniform())
     return log_uniform_random < log_acceptance_ratio
 
 
@@ -41,7 +43,7 @@ def metropolis_hastings_accept_test(
     lp_current: float,
     lp_forward_transition: float,
     lp_reverse_transition: float,
-    rand: np.random.Generator
+    rand: np.random.Generator,
 ) -> bool:
     """Return whether to accept a proposed new state, given an asymmetric proposal distribution.
 
@@ -67,10 +69,11 @@ def metropolis_hastings_accept_test(
     # Since we have log likelihoods, replace multiplication/division with addition/subtraction.
     log_acceptance_ratio = lp_proposal - lp_current
     log_transition_likelihood_ratio = lp_reverse_transition - lp_forward_transition
-    adjusted_log_acceptance_ratio = log_acceptance_ratio + log_transition_likelihood_ratio
+    adjusted_log_acceptance_ratio = (
+        log_acceptance_ratio + log_transition_likelihood_ratio
+    )
     log_uniform_random: float = np.log(rand.uniform())
     return log_uniform_random < adjusted_log_acceptance_ratio
-
 
 
 class Metropolis:
@@ -79,7 +82,7 @@ class Metropolis:
         model: LogDensityModel,
         proposal_fn: Callable[[NDArray[np.float64]], ArrayLike],
         init: Optional[NDArray[np.float64]] = None,
-        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None
+        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
     ):
         self._model = model
         self._dim = self._model.dims()
@@ -97,14 +100,16 @@ class Metropolis:
     def sample(self) -> Sample:
         proposal, lp_proposal = self._propose()
         accept = metropolis_accept_test(lp_proposal, self._log_p_theta, self._rand)
-        if (accept):
+        if accept:
             self._update_theta(proposal, lp_proposal)
         return (self._theta, self._log_p_theta)
 
     def _propose(self) -> Sample:
         untyped_proposed_theta = np.asanyarray(self._proposal_fn(self._theta))
-        if not (untyped_proposed_theta.dtype == np.float64): 
-            raise TypeError(f"Proposal function must return a double; returned {untyped_proposed_theta.dtype=}.")
+        if not (untyped_proposed_theta.dtype == np.float64):
+            raise TypeError(
+                f"Proposal function must return a double; returned {untyped_proposed_theta.dtype=}."
+            )
         proposed_theta: NDArray[np.float64] = untyped_proposed_theta
         lp_proposed_theta = self._model.log_density(proposed_theta)
         return (proposed_theta, lp_proposed_theta)
@@ -121,7 +126,7 @@ class MetropolisHastings:
         proposal_fn: Callable[[NDArray[np.float64]], ArrayLike],
         transition_lp_fn: Callable[[NDArray[np.float64], NDArray[np.float64]], float],
         init: Optional[NDArray[np.float64]] = None,
-        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None
+        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
     ):
         self._model = model
         self._dim = self._model.dims()
@@ -141,15 +146,23 @@ class MetropolisHastings:
         proposal, lp_proposal = self._propose()
         lp_forward_transition = self._transition_lp_fn(proposal, self._theta)
         lp_backward_transition = self._transition_lp_fn(self._theta, proposal)
-        accept = metropolis_hastings_accept_test(lp_proposal, self._log_p_theta, lp_forward_transition, lp_backward_transition, self._rand)
-        if (accept):
+        accept = metropolis_hastings_accept_test(
+            lp_proposal,
+            self._log_p_theta,
+            lp_forward_transition,
+            lp_backward_transition,
+            self._rand,
+        )
+        if accept:
             self._update_theta(proposal, lp_proposal)
         return (self._theta, self._log_p_theta)
 
     def _propose(self) -> Sample:
         untyped_proposed_theta = np.asanyarray(self._proposal_fn(self._theta))
         if not (untyped_proposed_theta.dtype == np.float64):
-            raise TypeError(f"Proposal function must return a double; returned {untyped_proposed_theta.dtype=}.")
+            raise TypeError(
+                f"Proposal function must return a double; returned {untyped_proposed_theta.dtype=}."
+            )
         proposed_theta: NDArray[np.float64] = untyped_proposed_theta
         lp_proposed_theta = self._model.log_density(proposed_theta)
         return (proposed_theta, lp_proposed_theta)
@@ -165,20 +178,26 @@ class MetropolisHastingsCombo:
         model: LogDensityModel,
         *,
         proposal_fn: Callable[[NDArray[np.float64]], ArrayLike],
-        transition_lp_fn: Optional[Callable[[NDArray[np.float64], NDArray[np.float64]], float]] = None,
+        transition_lp_fn: Optional[
+            Callable[[NDArray[np.float64], NDArray[np.float64]], float]
+        ] = None,
         init: Optional[NDArray[np.float64]] = None,
-        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None
+        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
     ):
         self._model = model
         self._dim = self._model.dims()
         self._rand = np.random.default_rng(seed)
-        self._proposal_fn = proposal_fn # TODO: type check this once during construction?
+        self._proposal_fn = (
+            proposal_fn  # TODO: type check this once during construction?
+        )
 
         # If we were given a defined transition function, we will use it. Otherwise, we'll
         # be using the Metropolis acceptance test (which assumes the transition probabilities are
         # symmetric, and thus doesn't actually need the function at all). In that case,
         # we set up a dummy function to make sure that the function remains defined.
-        self._transition_lp_fn = transition_lp_fn if transition_lp_fn is not None else lambda x, y: 1
+        self._transition_lp_fn = (
+            transition_lp_fn if transition_lp_fn is not None else lambda x, y: 1
+        )
 
         # When there's a transition function, use the Metropolis-Hastings acceptance test, which
         # compensates for asymmetric transition probabilities--the case where
@@ -186,7 +205,11 @@ class MetropolisHastingsCombo:
         # Otherwise we assume it's symmetric, and use the Metropolis acceptance test.
         # Either way, we store the test that will be used in self._accept_fn, so we always
         # have it in the same place when drawing a sample.
-        self._accept_fn = self._accept_metropolis_hastings if transition_lp_fn is not None else self._accept_metropolis
+        self._accept_fn = (
+            self._accept_metropolis_hastings
+            if transition_lp_fn is not None
+            else self._accept_metropolis
+        )
         self._theta = init or self._rand.normal(size=self._dim)
         self._log_p_theta = self._model.log_density(self._theta)
 
@@ -199,14 +222,16 @@ class MetropolisHastingsCombo:
     def sample(self) -> Sample:
         proposal, lp_proposal = self._propose()
         accepted = self._accept_fn(lp_proposal, proposal)
-        if (accepted):
+        if accepted:
             self._update_theta(proposal, lp_proposal)
         return (self._theta, self._log_p_theta)
 
     def _propose(self) -> Sample:
         untyped_proposed_theta = np.asanyarray(self._proposal_fn(self._theta))
         if not (untyped_proposed_theta.dtype == np.float64):
-            raise TypeError(f"Proposal function must return a double; returned {untyped_proposed_theta.dtype=}.")
+            raise TypeError(
+                f"Proposal function must return a double; returned {untyped_proposed_theta.dtype=}."
+            )
         proposed_theta: NDArray[np.float64] = untyped_proposed_theta
         lp_proposed_theta = self._model.log_density(proposed_theta)
         return (proposed_theta, lp_proposed_theta)
@@ -218,11 +243,20 @@ class MetropolisHastingsCombo:
     # Note that the "proposal" parameter is unused here and not needed, but we want to keep
     # the function signature the same for _accept_metropolis and _accept_metropolis_hastings
     # so that they can be called the same way.
-    def _accept_metropolis(self, lp_proposal: float, proposal: NDArray[np.float64]) -> bool:
+    def _accept_metropolis(
+        self, lp_proposal: float, proposal: NDArray[np.float64]
+    ) -> bool:
         return metropolis_accept_test(lp_proposal, self._log_p_theta, self._rand)
 
-    def _accept_metropolis_hastings(self, lp_proposal: float, proposal: NDArray[np.float64]) -> bool:
+    def _accept_metropolis_hastings(
+        self, lp_proposal: float, proposal: NDArray[np.float64]
+    ) -> bool:
         lp_forward_transition = self._transition_lp_fn(self._theta, proposal)
         lp_reverse_transition = self._transition_lp_fn(proposal, self._theta)
-        return metropolis_hastings_accept_test(lp_proposal, self._log_p_theta, lp_forward_transition, lp_reverse_transition, self._rand)
-
+        return metropolis_hastings_accept_test(
+            lp_proposal,
+            self._log_p_theta,
+            lp_forward_transition,
+            lp_reverse_transition,
+            self._rand,
+        )
