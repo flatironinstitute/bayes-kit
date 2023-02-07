@@ -6,7 +6,9 @@ from .model_types import LogDensityModel
 
 # TODO: Add to global type definitions
 Sample = tuple[NDArray[np.float64], float]
-TransitionLPFn = Callable[[NDArray[np.float64], NDArray[np.float64]], float]
+TransitionLPFn = Callable[
+    [NDArray[np.float64], NDArray[np.float64]], float
+]  # s.b. (TO_STATE, FROM_STATE) -> log_prob (float)
 # TODO: make some decision about typing for parameters
 
 
@@ -125,8 +127,8 @@ class MetropolisHastings:
         self._log_p_theta = log_p_theta
 
     def _accept_test(self, lp_proposal: float, proposal: NDArray[np.float64]) -> bool:
-        lp_forward_transition = self._transition_lp_fn(self._theta, proposal)
-        lp_reverse_transition = self._transition_lp_fn(proposal, self._theta)
+        lp_forward_transition = self._transition_lp_fn(proposal, self._theta)
+        lp_reverse_transition = self._transition_lp_fn(self._theta, proposal)
         return metropolis_hastings_accept_test(
             lp_proposal,
             self._log_p_theta,
@@ -145,6 +147,9 @@ class Metropolis(MetropolisHastings):
         init: Optional[NDArray[np.float64]] = None,
         seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
     ):
+        # This transition function will never be used--it isn't needed for Metropolis,
+        # for which the transition probabilities are symmetric. But we need a valid one
+        # for the superclass' constructor.
         dummy_transition_fn: TransitionLPFn = lambda a, b: 1
         super().__init__(model, proposal_fn, dummy_transition_fn, init=init, seed=seed)
 
