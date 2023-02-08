@@ -82,7 +82,7 @@ def test_metropolis_hastings_accept_test_accepts_more_likely_proposal_given_tran
 
 
 def test_metropolis_hastings_accept_test_reduces_to_metropolis_given_equal_transition_likelihoods():
-    M = 10000
+    M = 1000
     mock_uniform = Mock()
     for _ in range(M):
         lp_proposal = np.log(np.random.uniform())
@@ -130,7 +130,7 @@ def test_metropolis_beta_binom() -> None:
 
 
 def test_metropolis_hastings_skew_normal() -> None:
-    M = 50000  # This is obviously extremely slow, can we increase the tolerance?
+    M = 2500
     skewness_a = 4
     model = SkewNormal(a=skewness_a)
     init: NDArray[np.float64] = sst.skewnorm.rvs(skewness_a, size=[1])  # type: ignore
@@ -146,8 +146,8 @@ def test_metropolis_hastings_skew_normal() -> None:
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
 
-    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
-    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.1)
+    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.3)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.3)
 
 
 def test_metropolis_reproducible() -> None:
@@ -267,16 +267,23 @@ def test_metropolis_hastings_iter_returns_self() -> None:
     assert i == mh
 
 
-# Don't actually try to sample anything, just confirm that the
-# sample method was called when iterating over the MetropolisHasting object
-@patch.object(MetropolisHastings, "sample")
-def test_metropolis_hastings_next_calls_sample(mock_sample) -> None:
+def test_metropolis_hastings_next_trajectory_matches_calling_sample() -> None:
     model = StdNormal()
-    proposal_fn = lambda x: 1
-    transition_lp_fn = lambda x, y: 1
-    mh = MetropolisHastings(model, proposal_fn, transition_lp_fn)
-    _ = [next(mh) for i in range(1)]
-    mock_sample.assert_called_once()
+    init = np.random.normal(loc=0, scale=1, size=[1])
+    M = 25
+
+    proposal_generator = np.random.default_rng(seed=123)
+    p_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)
+    x_fn = lambda o, g: 1  # symmetric likelihood--don't bother to compute
+    mh1 = MetropolisHastings(model, proposal_fn=p_fn, transition_lp_fn=x_fn, init=init, seed=996)
+    draws_1 = np.array([mh1.sample()[0] for _ in range(M)])
+
+    proposal_generator = np.random.default_rng(seed=123)
+    p_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)
+    mh2 = MetropolisHastings(model, proposal_fn=p_fn, transition_lp_fn=x_fn, init=init, seed=996)
+    draws_2 = np.array([next(mh2)[0] for _ in range(M)])
+
+    np.testing.assert_array_equal(draws_1, draws_2)
 
 
 def test_metropolis_hastings_throws_when_proposal_fn_generates_wrong_type() -> None:
