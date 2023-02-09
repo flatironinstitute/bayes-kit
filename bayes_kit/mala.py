@@ -2,6 +2,7 @@ from typing import Iterator, Optional, Union
 from numpy.typing import NDArray
 import numpy as np
 
+from .metropolis import metropolis_hastings_accept_test
 from .model_types import GradModel
 
 Sample = tuple[NDArray[np.float64], float]
@@ -39,10 +40,15 @@ class MALA:
         lp_prop, grad_prob_al = self._model.log_density_gradient(theta_prop)
         grad_prop = np.asanyarray(grad_prob_al)
 
-        if np.log(self._rand.random()) < lp_prop + self.correction(
-            self._theta, theta_prop, grad_prop
-        ) - self._log_p_theta - self.correction(
-            theta_prop, self._theta, self._log_p_grad_theta
+        lp_forward = self._correction(theta_prop, self._theta, self._log_p_grad_theta)
+        lp_reverse = self._correction(self._theta, theta_prop, grad_prop)
+
+        if metropolis_hastings_accept_test(
+            lp_prop,
+            self._log_p_theta,
+            lp_forward,
+            lp_reverse,
+            self._rand,
         ):
             self._theta = theta_prop
             self._log_p_theta = lp_prop
@@ -50,7 +56,7 @@ class MALA:
 
         return self._theta, self._log_p_theta
 
-    def correction(
+    def _correction(
         self,
         theta_prime: NDArray[np.float64],
         theta: NDArray[np.float64],
