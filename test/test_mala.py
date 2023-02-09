@@ -43,9 +43,14 @@ def test_mala_repr() -> None:
 
     mala_1 = MALA(model, 0.3, init, seed=123)
     mala_2 = MALA(model, 0.3, init, seed=123)
+    mala_3 = MALA(model, 0.3, init, seed=321)
 
     M = 25
     draws_1 = np.array([mala_1.sample()[0] for _ in range(M)])
     draws_2 = np.array([mala_2.sample()[0] for _ in range(M)])
+    draws_3 = np.array([mala_3.sample()[0] for _ in range(M)])
 
     np.testing.assert_array_equal(draws_1, draws_2)
+    # Confirm that different results occur with different seeds
+    with np.testing.assert_raises(AssertionError):
+        np.testing.assert_array_equal(draws_1, draws_3)

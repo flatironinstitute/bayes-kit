@@ -22,8 +22,8 @@ class BetaBinom:
     def dims(self) -> int:
         return 1
 
-    def log_density(self, theta: npt.NDArray[np.float64]) -> float:
-        return self.log_likelihood(theta) + self.log_prior(theta)
+    def log_density(self, params_unc: npt.NDArray[np.float64]) -> float:
+        return self.log_likelihood(params_unc) + self.log_prior(params_unc)
 
     def log_prior(self, theta: npt.NDArray[np.float64]) -> float:
         return stats.beta.logpdf(theta[0], self.alpha, self.beta)  # type: ignore # scipy is not typed
@@ -35,13 +35,13 @@ class BetaBinom:
         return self._rand.beta(self.alpha, self.beta, size=1)
 
     def log_density_gradient(
-        self, theta: npt.NDArray[np.float64]
+        self, params_unc: npt.NDArray[np.float64]
     ) -> tuple[float, npt.NDArray[np.float64]]:
         # use finite diffs for now
         epsilon = 0.000001
 
-        lp = self.log_density(theta)
-        lp_plus_e = self.log_density(theta + epsilon)
+        lp = self.log_density(params_unc)
+        lp_plus_e = self.log_density(params_unc + epsilon)
         return lp, np.array([(lp - lp_plus_e)])
 
     def posterior_mean(self) -> float:
