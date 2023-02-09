@@ -101,6 +101,8 @@ def test_metropolis_hastings_accept_test_reduces_to_metropolis_given_equal_trans
 def test_metropolis_std_normal() -> None:
     M = 2500
     model = StdNormal()
+    # We generally don't want to set random seeds for tests, but here doing so lets us
+    # set a tighter tolerance and lower iteration count while still avoiding stochastic failure.
     gen = np.random.default_rng(seed=12345)
     # init with draw from posterior
     init = gen.normal(loc=0, scale=1, size=[1])
@@ -134,6 +136,11 @@ def test_metropolis_hastings_skew_normal() -> None:
     M = 2500
     skewness_a = 4
     model = SkewNormal(a=skewness_a)
+    # We don't generally want to set random seeds for tests, but this sampler converges quite slowly.
+    # So the options are either fixing the seed, setting an unbearably high iteration count, setting
+    # a very soft tolerance, or accepting stochastic test failure. Among those choices,
+    # a test that has tight tolerance on a known value in a tolerable runtime seems most likely to
+    # actually inform us if any bugs are introduced in the code.
     gen = np.random.default_rng(seed=1701)
     init: NDArray[np.float64] = sst.skewnorm.rvs(skewness_a, size=[1], random_state=gen)  # type: ignore
     p_fn = lambda theta: np.array(
