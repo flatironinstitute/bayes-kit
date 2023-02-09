@@ -99,12 +99,13 @@ def test_metropolis_hastings_accept_test_reduces_to_metropolis_given_equal_trans
 
 
 def test_metropolis_std_normal() -> None:
-    M = 5000  # Iterations is too low or tolerance is too high--this fails stochastically
+    M = 2500
     model = StdNormal()
+    gen = np.random.default_rng(seed=12345)
     # init with draw from posterior
-    init = np.random.normal(loc=0, scale=1, size=[1])
-    proposal_fn = lambda theta: np.random.normal(loc=theta, scale=4)
-    metropolis = Metropolis(model, proposal_fn=proposal_fn, init=init)
+    init = gen.normal(loc=0, scale=1, size=[1])
+    proposal_fn = lambda theta: gen.normal(loc=theta, scale=4)
+    metropolis = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1777)
 
     draws = np.array([metropolis.sample()[0] for _ in range(M)])
     mean = draws.mean(axis=0)
@@ -133,21 +134,24 @@ def test_metropolis_hastings_skew_normal() -> None:
     M = 2500
     skewness_a = 4
     model = SkewNormal(a=skewness_a)
-    init: NDArray[np.float64] = sst.skewnorm.rvs(skewness_a, size=[1])  # type: ignore
-    proposal_fn = lambda theta: np.array([sst.skewnorm.rvs(skewness_a, loc=theta)])
-    transition_lp_fn = lambda observation, given: sst.skewnorm.logpdf(
+    gen = np.random.default_rng(seed=1701)
+    init: NDArray[np.float64] = sst.skewnorm.rvs(skewness_a, size=[1], random_state=gen)  # type: ignore
+    p_fn = lambda theta: np.array(
+        [sst.skewnorm.rvs(skewness_a, loc=theta, random_state=gen)]
+    )
+    trns_lp_fn = lambda observation, given: sst.skewnorm.logpdf(
         observation, skewness_a, loc=given
     )[0]
     mh = MetropolisHastings(
-        model, proposal_fn=proposal_fn, transition_lp_fn=transition_lp_fn, init=init
+        model, proposal_fn=p_fn, transition_lp_fn=trns_lp_fn, init=init, seed=1777
     )
 
     draws = np.array([mh.sample()[0] for _ in range(M)])
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
 
-    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.3)
-    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.3)
+    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.18)
 
 
 def test_metropolis_reproducible() -> None:
@@ -179,17 +183,23 @@ def test_metropolis_reproducible() -> None:
         np.testing.assert_array_equal(draws_1, draws_3)
 
 
+# Used in testing metropolis-hastings reproducibility.
+# This winds up being more stable than rewriting the lambda directly in the test fn body.
+def skewnorm_proposal_fn_factory(skewness: float, gen: np.random.Generator):
+    fn = lambda t: np.array([sst.skewnorm.rvs(skewness, loc=t, random_state=gen)])
+    return fn
+
+
 def test_metropolis_hastings_reproducible() -> None:
     skewness_a = 4
     model = SkewNormal(a=skewness_a)
     M = 50
-    init: NDArray[np.float64] = sst.skewnorm.rvs(skewness_a, size=[1])  # type: ignore
+    g = np.random.default_rng(seed=123)
+    init: NDArray[np.float64] = sst.skewnorm.rvs(skewness_a, size=[1], random_state=g)  # type: ignore
     transition_lp_fn = lambda o, g: sst.skewnorm.logpdf(o, skewness_a, loc=g)[0]
 
     proposal_generator = np.random.default_rng(seed=12345)
-    proposal_fn = lambda theta: np.array(
-        [sst.skewnorm.rvs(skewness_a, loc=theta, random_state=proposal_generator)]
-    )
+    proposal_fn = skewnorm_proposal_fn_factory(skewness_a, proposal_generator)
     mh_1 = MetropolisHastings(
         model,
         proposal_fn=proposal_fn,
@@ -200,9 +210,7 @@ def test_metropolis_hastings_reproducible() -> None:
     draws_1 = np.array([mh_1.sample()[0] for _ in range(M)])
 
     proposal_generator = np.random.default_rng(seed=12345)
-    proposal_fn = lambda theta: np.array(
-        [sst.skewnorm.rvs(skewness_a, loc=theta, random_state=proposal_generator)]
-    )
+    proposal_fn = skewnorm_proposal_fn_factory(skewness_a, proposal_generator)
     mh_2 = MetropolisHastings(
         model,
         proposal_fn=proposal_fn,
@@ -213,15 +221,13 @@ def test_metropolis_hastings_reproducible() -> None:
     draws_2 = np.array([mh_2.sample()[0] for _ in range(M)])
 
     proposal_generator = np.random.default_rng(seed=12345)
-    proposal_fn = lambda theta: np.array(
-        [sst.skewnorm.rvs(skewness_a, loc=theta, random_state=proposal_generator)]
-    )
+    proposal_fn = skewnorm_proposal_fn_factory(skewness_a, proposal_generator)
     mh_3 = MetropolisHastings(
         model,
         proposal_fn=proposal_fn,
         transition_lp_fn=transition_lp_fn,
         init=init,
-        seed=1912,
+        seed=518,
     )
     draws_3 = np.array([mh_3.sample()[0] for _ in range(M)])
 
@@ -275,12 +281,16 @@ def test_metropolis_hastings_next_trajectory_matches_calling_sample() -> None:
     proposal_generator = np.random.default_rng(seed=123)
     p_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)
     x_fn = lambda o, g: 1  # symmetric likelihood--don't bother to compute
-    mh1 = MetropolisHastings(model, proposal_fn=p_fn, transition_lp_fn=x_fn, init=init, seed=996)
+    mh1 = MetropolisHastings(
+        model, proposal_fn=p_fn, transition_lp_fn=x_fn, init=init, seed=996
+    )
     draws_1 = np.array([mh1.sample()[0] for _ in range(M)])
 
     proposal_generator = np.random.default_rng(seed=123)
     p_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)
-    mh2 = MetropolisHastings(model, proposal_fn=p_fn, transition_lp_fn=x_fn, init=init, seed=996)
+    mh2 = MetropolisHastings(
+        model, proposal_fn=p_fn, transition_lp_fn=x_fn, init=init, seed=996
+    )
     draws_2 = np.array([next(mh2)[0] for _ in range(M)])
 
     np.testing.assert_array_equal(draws_1, draws_2)
