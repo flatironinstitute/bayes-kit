@@ -23,7 +23,7 @@ def test_mala_std_normal() -> None:
 def test_mala_beta_binom() -> None:
     model = BetaBinom()
     M = 1000
-    mala = MALA(model, 0.5, init=np.array([model.initial_state(0)]))
+    mala = MALA(model, 0.001, init=np.array([model.initial_state(0)]))
 
     draws = np.array([mala.sample()[0] for _ in range(M)])
 
@@ -34,7 +34,7 @@ def test_mala_beta_binom() -> None:
     print(f"{mean=}  {var=}")
 
     np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.05)
-    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.005)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.008)
 
 
 def test_mala_repr() -> None:

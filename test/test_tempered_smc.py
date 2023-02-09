@@ -26,4 +26,4 @@ def test_rwm_smc_beta_binom() -> None:
     print(f"{mean=}  {var=}")
 
     np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.05)
-    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.005)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.008)

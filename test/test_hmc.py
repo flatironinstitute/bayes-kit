@@ -1,3 +1,4 @@
+from test.models.beta_binomial import BetaBinom
 from test.models.std_normal import StdNormal
 from bayes_kit.hmc import HMCDiag
 import numpy as np
@@ -31,3 +32,19 @@ def test_hmc_diag_repr() -> None:
     draws_2 = np.array([hmc_2.sample()[0] for _ in range(M)])
 
     np.testing.assert_array_equal(draws_1, draws_2)
+
+def test_hmc_beta_binom() -> None:
+    model = BetaBinom()
+    M = 500
+    mala = HMCDiag(model, steps=5, stepsize=0.01, init=np.array([model.initial_state(0)]))
+
+    draws = np.array([mala.sample()[0] for _ in range(M)])
+
+    mean = draws.mean(axis=0)
+    var = draws.var(axis=0, ddof=1)
+
+    print(f"{draws[1:10]=}")
+    print(f"{mean=}  {var=}")
+
+    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.05)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.008)
