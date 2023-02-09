@@ -33,6 +33,7 @@ def test_hmc_diag_repr() -> None:
 
     np.testing.assert_array_equal(draws_1, draws_2)
 
+
 def test_hmc_beta_binom() -> None:
     model = BetaBinom()
     M = 500
@@ -40,6 +41,7 @@ def test_hmc_beta_binom() -> None:
 
     draws = np.array([hmc.sample()[0] for _ in range(M)])
 
+    # skip 100 draws to try to make estimates less noisy. e.g treat as "burn in"
     mean = draws[100:].mean(axis=0)
     var = draws[100:].var(axis=0, ddof=1)
 

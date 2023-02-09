@@ -27,6 +27,7 @@ def test_mala_beta_binom() -> None:
 
     draws = np.array([mala.sample()[0] for _ in range(M)])
 
+    # skip 100 draws to try to make estimates less noisy. e.g treat as "burn in"
     mean = draws[100:].mean(axis=0)
     var = draws[100:].var(axis=0, ddof=1)
 
