@@ -38,7 +38,7 @@ class BetaBinom:
         self, params_unc: npt.NDArray[np.float64]
     ) -> tuple[float, npt.NDArray[np.float64]]:
         # use finite diffs for now
-        epsilon = 0.00001
+        epsilon = 0.0000001
         lp = self.log_density(params_unc)
         lp_plus_e = self.log_density(params_unc + epsilon)
         return lp, np.array([(lp - lp_plus_e) / epsilon])

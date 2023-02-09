@@ -36,12 +36,12 @@ def test_hmc_diag_repr() -> None:
 def test_hmc_beta_binom() -> None:
     model = BetaBinom()
     M = 500
-    mala = HMCDiag(model, steps=5, stepsize=0.01, init=np.array([model.initial_state(0)]))
+    hmc = HMCDiag(model, steps=3, stepsize=0.01, init=np.array([0.2]))
 
-    draws = np.array([mala.sample()[0] for _ in range(M)])
+    draws = np.array([hmc.sample()[0] for _ in range(M)])
 
-    mean = draws.mean(axis=0)
-    var = draws.var(axis=0, ddof=1)
+    mean = draws[100:].mean(axis=0)
+    var = draws[100:].var(axis=0, ddof=1)
 
     print(f"{draws[1:10]=}")
     print(f"{mean=}  {var=}")
