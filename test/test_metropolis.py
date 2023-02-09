@@ -301,5 +301,5 @@ def test_metropolis_hastings_throws_when_proposal_fn_generates_wrong_type() -> N
     proposal_fn = lambda x: "a"
     transition_lp_fn = lambda x, y: 1
     mh = MetropolisHastings(model, proposal_fn, transition_lp_fn)
-    with np.testing.assert_raises(TypeError):
+    with np.testing.assert_raises(ValueError):
         _ = mh.sample()
