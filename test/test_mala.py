@@ -22,8 +22,8 @@ def test_mala_std_normal() -> None:
 
 def test_mala_beta_binom() -> None:
     model = BetaBinom()
-    M = 1000
-    mala = MALA(model, 0.005, init=np.array([0.2]))
+    M = 2000
+    mala = MALA(model, 0.0005, init=np.array([0.2]))
 
     draws = np.array([mala.sample()[0] for _ in range(M)])
 

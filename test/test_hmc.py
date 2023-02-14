@@ -37,7 +37,7 @@ def test_hmc_diag_repr() -> None:
 def test_hmc_beta_binom() -> None:
     model = BetaBinom()
     M = 500
-    hmc = HMCDiag(model, steps=3, stepsize=0.01, init=np.array([0.2]))
+    hmc = HMCDiag(model, steps=3, stepsize=0.02, init=np.array([0.2]))
 
     draws = np.array([hmc.sample()[0] for _ in range(M)])
 

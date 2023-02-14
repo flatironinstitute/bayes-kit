@@ -12,7 +12,6 @@ from unittest.mock import Mock
 import numpy as np
 import scipy.stats as sst
 from numpy.typing import NDArray
-from unittest.mock import patch
 
 
 def test_metropolis_accept_test_accepts_more_likely_proposal() -> None:
