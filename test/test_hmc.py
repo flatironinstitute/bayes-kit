@@ -43,7 +43,7 @@ def test_hmc_binom() -> None:
 
     draws = model.constrain_draws(np.array([hmc.sample()[0] for _ in range(M)]))
 
-    # skip 100 draws to try to make estimates less noisy. e.g treat as "burn in"
+    # skip 100 draws as a "burn-in" to try to make estimates less noisy
     mean = draws[100:].mean(axis=0)
     var = draws[100:].var(axis=0, ddof=1)
 

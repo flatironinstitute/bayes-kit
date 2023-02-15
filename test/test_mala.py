@@ -27,7 +27,7 @@ def test_mala_binom() -> None:
 
     draws = model.constrain_draws(np.array([mala.sample()[0] for _ in range(M)]))
 
-    # skip 200 draws to try to make estimates less noisy. e.g treat as "burn in"
+    # skip 200 draws as a "burn-in" to try to make estimates less noisy
     mean = draws[200:].mean(axis=0)
     var = draws[200:].var(axis=0, ddof=1)
 

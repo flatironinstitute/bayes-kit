@@ -7,11 +7,12 @@ import numpy.typing as npt
 
 class Binomial:
     """
-    Binomial model with a (conjugate) beta prior.
+    Binomial model with a conjugate beta prior.
 
-    This model is decomposed as a prior and a likelihood for
-    testing with samplers that require that, e.g. SMC. The
-    posterior has a closed-form beta distribution.
+    his model's joint density is factored as the product of
+    the prior density and the likelihood for testing with
+    samplers that require that (e.g., SMC).
+    The posterior has a closed form beta distribution.
     """
 
     def __init__(
