@@ -40,11 +40,13 @@ class MALA:
         # user-provided models can return non-NDArrays as gradients
         grad_prop = np.asanyarray(grad_prop)
 
-        lp_forward = self._directional_log_density(
+        lp_forward = self._proposal_log_density(
             theta_prop, self._theta, self._log_p_grad_theta
         )
-        lp_reverse = self._directional_log_density(self._theta, theta_prop, grad_prop)
-
+        lp_reverse = self._proposal_log_density(self._theta, theta_prop, grad_prop)
+        # Note: we opt for code reuse here rather than subclassing MH directly,
+        # in order to cache gradient calls (naively implementing MALA as MH requires
+        # three calls per iteration, this implementation only requires one)
         if metropolis_hastings_accept_test(
             lp_prop,
             self._log_p_theta,
@@ -58,12 +60,15 @@ class MALA:
 
         return self._theta, self._log_p_theta
 
-    def _directional_log_density(
+    def _proposal_log_density(
         self,
         theta_prime: NDArray[np.float64],
         theta: NDArray[np.float64],
         grad_theta: NDArray[np.float64],
     ) -> float:
+        """
+        Conditional log probability of the proposed parameters
+        given the current parameters, log q(theta' | theta).
+        """
         x = theta_prime - theta - self._epsilon * grad_theta
-        dot_self: float = x.dot(x)
-        return (-0.25 / self._epsilon) * dot_self
+        return (-0.25 / self._epsilon) * x.dot(x)  # type: ignore  # dot is untyped
