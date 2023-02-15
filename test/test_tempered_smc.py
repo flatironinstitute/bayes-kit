@@ -1,10 +1,10 @@
-from test.models.beta_binomial import BetaBinom
+from test.models.binomial import Binomial
 from bayes_kit.smc import TemperedLikelihoodSMC, metropolis_kernel
 import numpy as np
 
 
 def test_rwm_smc_beta_binom() -> None:
-    model = BetaBinom()
+    model = Binomial()
     M = 75
     N = 10
     rwm_smc = TemperedLikelihoodSMC(
@@ -17,7 +17,7 @@ def test_rwm_smc_beta_binom() -> None:
     )
 
     rwm_smc.run()
-    draws = rwm_smc.thetas
+    draws = model.constrain_draws(rwm_smc.thetas)
 
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)

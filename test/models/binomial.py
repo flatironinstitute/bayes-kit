@@ -1,10 +1,19 @@
 from typing import Union
 from scipy import stats
+from scipy.special import logit, expit as inv_logit, log1p
 import numpy as np
 import numpy.typing as npt
 
 
-class BetaBinom:
+class Binomial:
+    """
+    Binomial model with a (conjugate) beta prior.
+
+    This model is decomposed as a prior and a likelihood for
+    testing with samplers that require that, e.g. SMC. The
+    posterior has a closed-form beta distribution.
+    """
+
     def __init__(
         self,
         alpha: float = 2,
@@ -26,15 +35,20 @@ class BetaBinom:
         return self.log_likelihood(params_unc) + self.log_prior(params_unc)
 
     def log_prior(self, theta: npt.NDArray[np.float64]) -> float:
-        # TODO(bmw): scipy implements constrained PDFs, so in particular this fails for theta outside [0,1]
-
-        return stats.beta.logpdf(theta[0], self.alpha, self.beta)  # type: ignore # scipy is not typed
+        theta_constrained = inv_logit(theta[0])
+        jac_adjust: float = np.log(theta_constrained) + log1p(-theta_constrained)
+        prior: float = stats.beta.logpdf(theta_constrained, self.alpha, self.beta)
+        return prior + jac_adjust
 
     def log_likelihood(self, theta: npt.NDArray[np.float64]) -> float:
-        return stats.binom.logpmf(self.x, self.N, theta[0])  # type: ignore # scipy is not typed
+        theta_constrained = inv_logit(theta[0])
+        return stats.binom.logpmf(self.x, self.N, theta_constrained)  # type: ignore # scipy is not typed
 
     def initial_state(self, _: int) -> npt.NDArray[np.float64]:
-        return self._rand.beta(self.alpha, self.beta, size=1)
+        return logit(self._rand.beta(self.alpha, self.beta, size=1)) # type: ignore # scipy is not typed
+
+    def constrain_draws(self, draws: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        return inv_logit(draws) # type: ignore # scipy is not typed
 
     def posterior_mean(self) -> float:
         return (self.alpha + self.x) / (self.alpha + self.beta + self.N)
