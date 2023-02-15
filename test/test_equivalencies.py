@@ -7,7 +7,7 @@ import numpy as np
 import scipy.stats as sst
 
 
-def test_hmc_mala_agreement():
+def test_hmc_mala_agreement() -> None:
     """HMC with 1 step is equivalent to MALA"""
     model = StdNormal()
     init = np.array([0.2])
