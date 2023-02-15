@@ -6,14 +6,14 @@ from .model_types import LogDensityModel
 
 # TODO: Add to global type definitions
 Vector = NDArray[np.float64]
-Sample = tuple[Vector, float]
+Draw = tuple[Vector, float]
 # s.b. (TO_STATE, FROM_STATE) -> log_prob (float)
 TransitionLPFn = Callable[[Vector, Vector], float]
 Seed = Union[int, np.random.BitGenerator, np.random.Generator]
 
 
 def metropolis_accept_test(
-    lp_proposal: float, lp_current: float, rand: np.random.Generator
+    lp_proposal: float, lp_current: float, rng: np.random.Generator
 ) -> bool:
     """
     Return whether to accept a proposed new state.
@@ -25,7 +25,7 @@ def metropolis_accept_test(
     Parameters:
         lp_proposal (float): log probability of the proposed parameter values (theta-star)
         lp_current (float): log probability of the current parameter values (theta)
-        rand (np.random.Generator): an appropriately seeded pseudorandom number generator
+        rng (np.random.Generator): an appropriately seeded pseudorandom number generator
 
     Returns:
         True if the proposal is accepted; false otherwise
@@ -37,7 +37,7 @@ def metropolis_accept_test(
     # instead of
     #       uniform_random < x/y
     log_acceptance_ratio = lp_proposal - lp_current
-    log_uniform_random: float = np.log(rand.uniform())
+    log_uniform_random: float = np.log(rng.uniform())
     return log_uniform_random < log_acceptance_ratio
 
 
@@ -46,7 +46,7 @@ def metropolis_hastings_accept_test(
     lp_current: float,
     lp_forward_transition: float,
     lp_reverse_transition: float,
-    rand: np.random.Generator,
+    rng: np.random.Generator,
 ) -> bool:
     """Return whether to accept a proposed new state, given an asymmetric proposal distribution.
 
@@ -64,7 +64,7 @@ def metropolis_hastings_accept_test(
         lp_current (float): log probability of the current parameter values (theta)
         lp_forward_transition (float): log probability of proposing the proposal starting from current
         lp_reverse_transition (float): log probability of proposing the current state starting from the proposal
-        rand (np.random.Generator): an appropriately seeded pseudorandom number generator
+        rng (np.random.Generator): an appropriately seeded pseudorandom number generator
 
     Returns:
         True if the proposal is accepted; false otherwise
@@ -75,7 +75,7 @@ def metropolis_hastings_accept_test(
     adjusted_log_acceptance_ratio = (
         log_acceptance_ratio + log_transition_likelihood_ratio
     )
-    log_uniform_random: float = np.log(rand.uniform())
+    log_uniform_random: float = np.log(rng.uniform())
     return log_uniform_random < adjusted_log_acceptance_ratio
 
 
@@ -91,26 +91,26 @@ class MetropolisHastings:
     ):
         self._model = model
         self._dim = self._model.dims()
-        self._rand = np.random.default_rng(seed)
+        self._rng = np.random.default_rng(seed)
         self._proposal_fn = proposal_fn
         self._transition_lp_fn = transition_lp_fn
-        self._theta = init or self._rand.normal(size=self._dim)
+        self._theta = init or self._rng.normal(size=self._dim)
         self._log_p_theta = self._model.log_density(self._theta)
 
-    def __iter__(self) -> Iterator[Sample]:
+    def __iter__(self) -> Iterator[Draw]:
         return self
 
-    def __next__(self) -> Sample:
+    def __next__(self) -> Draw:
         return self.sample()
 
-    def sample(self) -> Sample:
+    def sample(self) -> Draw:
         proposal, lp_proposal = self._propose()
         accepted = self._accept_test(lp_proposal, proposal)
         if accepted:
             self._update_theta(proposal, lp_proposal)
         return (self._theta, self._log_p_theta)
 
-    def _propose(self) -> Sample:
+    def _propose(self) -> Draw:
         untyped_proposed_theta = np.asanyarray(
             self._proposal_fn(self._theta), dtype=np.float64
         )
@@ -130,7 +130,7 @@ class MetropolisHastings:
             self._log_p_theta,
             lp_forward_transition,
             lp_reverse_transition,
-            self._rand,
+            self._rng,
         )
 
 
@@ -151,4 +151,4 @@ class Metropolis(MetropolisHastings):
 
     # 'proposal' isn't used, but we need signature consistency to override the parent method
     def _accept_test(self, lp_proposal: float, proposal: Vector) -> bool:
-        return metropolis_accept_test(lp_proposal, self._log_p_theta, self._rand)
+        return metropolis_accept_test(lp_proposal, self._log_p_theta, self._rng)
