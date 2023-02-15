@@ -45,10 +45,22 @@ class Binomial:
         return stats.binom.logpmf(self.x, self.N, theta_constrained)  # type: ignore # scipy is not typed
 
     def initial_state(self, _: int) -> npt.NDArray[np.float64]:
-        return logit(self._rand.beta(self.alpha, self.beta, size=1)) # type: ignore # scipy is not typed
+        return logit(self._rand.beta(self.alpha, self.beta, size=1))  # type: ignore # scipy is not typed
 
-    def constrain_draws(self, draws: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
-        return inv_logit(draws) # type: ignore # scipy is not typed
+    def log_density_gradient(
+        self, params_unc: npt.NDArray[np.float64]
+    ) -> tuple[float, npt.NDArray[np.float64]]:
+        # use finite diffs for now
+        epsilon = 0.000001
+
+        lp = self.log_density(params_unc)
+        lp_plus_e = self.log_density(params_unc + epsilon)
+        return lp, np.array([(lp - lp_plus_e) / epsilon])
+
+    def constrain_draws(
+        self, draws: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]:
+        return inv_logit(draws)  # type: ignore # scipy is not typed
 
     def posterior_mean(self) -> float:
         return (self.alpha + self.x) / (self.alpha + self.beta + self.N)

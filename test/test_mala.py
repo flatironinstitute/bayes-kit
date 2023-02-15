@@ -1,3 +1,4 @@
+from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
 from bayes_kit.mala import MALA
 import numpy as np
@@ -18,6 +19,24 @@ def test_mala_std_normal() -> None:
     np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
     np.testing.assert_allclose(var, model.posterior_variance(), atol=0.1)
 
+
+def test_mala_binom() -> None:
+    model = Binomial()
+    M = 1000
+    mala = MALA(model, 0.07, init=np.array([model.initial_state(0)]))
+
+    draws = model.constrain_draws(np.array([mala.sample()[0] for _ in range(M)]))
+
+    # skip 100 draws to try to make estimates less noisy. e.g treat as "burn in"
+    mean = draws[100:].mean(axis=0)
+    var = draws[100:].var(axis=0, ddof=1)
+
+    print(f"{draws[1:10]=}")
+    print(f"{mean=}  {var=}")
+    print(f"acceptance rate : {1 - (draws[1:] == draws[:-1] ).sum() / M}")
+
+    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.05)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.01)
 
 
 def test_mala_repr() -> None:

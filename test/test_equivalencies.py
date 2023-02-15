@@ -29,6 +29,7 @@ def test_hmc_mala_agreement() -> None:
     # make sure we didn't just stay at the initial value forever
     assert len(np.unique(draws_1)) > 20
 
+
 def test_metropolis_hastings_reduces_to_metropolis() -> None:
     """Metropolis Hastings is equivalent to Metropolis when the proposal is symmetric"""
 
