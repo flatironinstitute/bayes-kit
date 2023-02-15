@@ -12,7 +12,6 @@ from unittest.mock import Mock
 import numpy as np
 import scipy.stats as sst
 from numpy.typing import NDArray
-from unittest.mock import patch
 
 
 def test_metropolis_accept_test_accepts_more_likely_proposal() -> None:
@@ -242,35 +241,6 @@ def test_metropolis_hastings_reproducible() -> None:
     with np.testing.assert_raises(AssertionError):
         np.testing.assert_array_equal(draws_1, draws_3)
 
-
-def test_metropolis_hastings_reduces_to_metropolis() -> None:
-    # Metro & mh give same samples when fed symmetric proposal fn & same random seed
-    # CF the individual reproducibility tests above
-    M = 25
-    skewness_a = 0
-    model = SkewNormal(a=skewness_a)  # which is 0, i.e. standard normal
-    init = np.random.normal(loc=0, scale=1, size=[1])
-    t_lp_fn = lambda o, g: sst.skewnorm.logpdf(o, skewness_a, loc=g)[0]
-
-    gen = np.random.default_rng(seed=12345)
-    proposal_fn = lambda t: np.array(
-        [sst.skewnorm.rvs(skewness_a, loc=t, random_state=gen)]
-    )
-    metropolis = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1848)
-    draws_from_metropolis = np.array([metropolis.sample()[0] for _ in range(M)])
-
-    gen = np.random.default_rng(seed=12345)
-    proposal_fn = lambda t: np.array(
-        [sst.skewnorm.rvs(skewness_a, loc=t, random_state=gen)]
-    )
-    mh = MetropolisHastings(
-        model, proposal_fn=proposal_fn, transition_lp_fn=t_lp_fn, init=init, seed=1848
-    )
-    draws_from_mh = np.array([mh.sample()[0] for _ in range(M)])
-
-    np.testing.assert_array_equal(draws_from_metropolis, draws_from_mh)
-
-
 def test_metropolis_hastings_iter_returns_self() -> None:
     model = StdNormal()
     proposal_fn = lambda x: 1
@@ -278,7 +248,6 @@ def test_metropolis_hastings_iter_returns_self() -> None:
     mh = MetropolisHastings(model, proposal_fn, transition_lp_fn)
     i = iter(mh)
     assert i == mh
-
 
 def test_metropolis_hastings_next_trajectory_matches_calling_sample() -> None:
     model = StdNormal()

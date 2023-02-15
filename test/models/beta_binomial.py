@@ -26,6 +26,8 @@ class BetaBinom:
         return self.log_likelihood(params_unc) + self.log_prior(params_unc)
 
     def log_prior(self, theta: npt.NDArray[np.float64]) -> float:
+        # TODO(bmw): scipy implements constrained PDFs, so in particular this fails for theta outside [0,1]
+
         return stats.beta.logpdf(theta[0], self.alpha, self.beta)  # type: ignore # scipy is not typed
 
     def log_likelihood(self, theta: npt.NDArray[np.float64]) -> float:
@@ -33,16 +35,6 @@ class BetaBinom:
 
     def initial_state(self, _: int) -> npt.NDArray[np.float64]:
         return self._rand.beta(self.alpha, self.beta, size=1)
-
-    def log_density_gradient(
-        self, params_unc: npt.NDArray[np.float64]
-    ) -> tuple[float, npt.NDArray[np.float64]]:
-        # use finite diffs for now
-        epsilon = 0.000001
-
-        lp = self.log_density(params_unc)
-        lp_plus_e = self.log_density(params_unc + epsilon)
-        return lp, np.array([(lp - lp_plus_e)])
 
     def posterior_mean(self) -> float:
         return (self.alpha + self.x) / (self.alpha + self.beta + self.N)
