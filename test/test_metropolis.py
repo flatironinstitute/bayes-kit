@@ -119,7 +119,7 @@ def test_metropolis_std_normal() -> None:
 
 def test_metropolis_binom() -> None:
     M = 1000
-    model = Binomial()
+    model = Binomial(alpha=2, beta=3, x=5, N=15)
     init = np.array([model.initial_state(0)])
     proposal_fn = lambda theta: np.random.normal(loc=theta, scale=4)
     metropolis = Metropolis(model, proposal_fn=proposal_fn, init=init)

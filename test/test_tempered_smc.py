@@ -4,7 +4,7 @@ import numpy as np
 
 
 def test_rwm_smc_binom() -> None:
-    model = Binomial()
+    model = Binomial(alpha=2, beta=3, x=5, N=15)
     M = 75
     N = 15
     rwm_smc = TemperedLikelihoodSMC(

@@ -35,7 +35,7 @@ def test_hmc_diag_repr() -> None:
 
 
 def test_hmc_binom() -> None:
-    model = Binomial()
+    model = Binomial(alpha=2, beta=3, x=5, N=15)
     M = 800
     hmc = HMCDiag(
         model, stepsize=0.08, steps=3, init=np.array([model.initial_state(0)])

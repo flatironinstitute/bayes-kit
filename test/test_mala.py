@@ -21,7 +21,7 @@ def test_mala_std_normal() -> None:
 
 
 def test_mala_binom() -> None:
-    model = Binomial()
+    model = Binomial(alpha=2, beta=3, x=5, N=15)
     M = 1200
     mala = MALA(model, 0.07, init=np.array([model.initial_state(0)]))
 
