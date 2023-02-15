@@ -5,7 +5,7 @@ import numpy as np
 from .metropolis import metropolis_hastings_accept_test
 from .model_types import GradModel
 
-Sample = tuple[NDArray[np.float64], float]
+Draw = tuple[NDArray[np.float64], float]
 
 
 class MALA:
@@ -19,36 +19,38 @@ class MALA:
         self._model = model
         self._epsilon = epsilon
         self._dim = self._model.dims()
-        self._rand = np.random.default_rng(seed)
-        self._theta = init or self._rand.normal(size=self._dim)
+        self._rng = np.random.default_rng(seed)
+        self._theta = init or self._rng.normal(size=self._dim)
         self._log_p_theta, logpgrad = self._model.log_density_gradient(self._theta)
         self._log_p_grad_theta = np.asanyarray(logpgrad)
 
-    def __iter__(self) -> Iterator[Sample]:
+    def __iter__(self) -> Iterator[Draw]:
         return self
 
-    def __next__(self) -> Sample:
+    def __next__(self) -> Draw:
         return self.sample()
 
-    def sample(self) -> Sample:
+    def sample(self) -> Draw:
         theta_prop = (
             self._theta
             + self._epsilon * self._log_p_grad_theta
-            + np.sqrt(2 * self._epsilon) * self._rand.normal(size=self._model.dims())
+            + np.sqrt(2 * self._epsilon) * self._rng.normal(size=self._model.dims())
         )
+        lp_prop, grad_prop = self._model.log_density_gradient(theta_prop)
+        # user-provided models can return non-NDArrays as gradients
+        grad_prop = np.asanyarray(grad_prop)
 
-        lp_prop, grad_prob_al = self._model.log_density_gradient(theta_prop)
-        grad_prop = np.asanyarray(grad_prob_al)
-
-        lp_forward = self._correction(theta_prop, self._theta, self._log_p_grad_theta)
-        lp_reverse = self._correction(self._theta, theta_prop, grad_prop)
+        lp_forward = self._directional_log_density(
+            theta_prop, self._theta, self._log_p_grad_theta
+        )
+        lp_reverse = self._directional_log_density(self._theta, theta_prop, grad_prop)
 
         if metropolis_hastings_accept_test(
             lp_prop,
             self._log_p_theta,
             lp_forward,
             lp_reverse,
-            self._rand,
+            self._rng,
         ):
             self._theta = theta_prop
             self._log_p_theta = lp_prop
@@ -56,7 +58,7 @@ class MALA:
 
         return self._theta, self._log_p_theta
 
-    def _correction(
+    def _directional_log_density(
         self,
         theta_prime: NDArray[np.float64],
         theta: NDArray[np.float64],
