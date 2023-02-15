@@ -22,14 +22,14 @@ def test_mala_std_normal() -> None:
 
 def test_mala_binom() -> None:
     model = Binomial()
-    M = 1000
+    M = 1200
     mala = MALA(model, 0.07, init=np.array([model.initial_state(0)]))
 
     draws = model.constrain_draws(np.array([mala.sample()[0] for _ in range(M)]))
 
-    # skip 100 draws to try to make estimates less noisy. e.g treat as "burn in"
-    mean = draws[100:].mean(axis=0)
-    var = draws[100:].var(axis=0, ddof=1)
+    # skip 200 draws to try to make estimates less noisy. e.g treat as "burn in"
+    mean = draws[200:].mean(axis=0)
+    var = draws[200:].var(axis=0, ddof=1)
 
     print(f"{draws[1:10]=}")
     print(f"{mean=}  {var=}")

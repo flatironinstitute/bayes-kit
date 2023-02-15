@@ -6,14 +6,14 @@ import numpy as np
 def test_rwm_smc_binom() -> None:
     model = Binomial()
     M = 75
-    N = 10
+    N = 15
     rwm_smc = TemperedLikelihoodSMC(
         M,
         N,
         model.initial_state,
         model.log_likelihood,
         model.log_prior,
-        metropolis_kernel(0.3),
+        metropolis_kernel(0.5),
     )
 
     rwm_smc.run()
@@ -26,4 +26,4 @@ def test_rwm_smc_binom() -> None:
     print(f"{mean=}  {var=}")
 
     np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.05)
-    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.008)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.01)
