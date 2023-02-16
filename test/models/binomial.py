@@ -24,7 +24,7 @@ class Binomial:
         self.beta = beta
         self.x = x
         self.N = N
-        self._rand = np.random.default_rng(seed)
+        self._rng = np.random.default_rng(seed)
         self._posterior = sst.beta(alpha + x, beta + N - x)
 
     def dims(self) -> int:
@@ -51,7 +51,7 @@ class Binomial:
         return sst.binom.logpmf(self.x, self.N, theta)  # type: ignore # scipy is not typed
 
     def initial_state(self, _: int) -> npt.NDArray[np.float64]:
-        return logit(self._rand.beta(self.alpha, self.beta, size=1))  # type: ignore # scipy is not typed
+        return logit(self._rng.beta(self.alpha, self.beta, size=1))  # type: ignore # scipy is not typed
 
     def log_density_gradient(
         self, params_unc: npt.NDArray[np.float64]

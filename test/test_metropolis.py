@@ -65,7 +65,7 @@ def test_metropolis_hastings_accept_test_accepts_more_likely_proposal_given_tran
         lp_current,
         lp_forward_transition=lp_transition_balanced,
         lp_reverse_transition=lp_transition_balanced,
-        rand=mock_random,
+        rng=mock_random,
     )
     # Now use asymmetric transition probabilities so that the reverse transition is
     # slightly more likely, thus "explaining away" that the current state is more
@@ -77,7 +77,7 @@ def test_metropolis_hastings_accept_test_accepts_more_likely_proposal_given_tran
         lp_current,
         lp_forward_transition=lp_forward_transition,
         lp_reverse_transition=lp_reverse_transition,
-        rand=mock_random,
+        rng=mock_random,
     )
 
 
