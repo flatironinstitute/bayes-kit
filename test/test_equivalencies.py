@@ -7,7 +7,7 @@ import numpy as np
 import scipy.stats as sst
 
 
-def test_hmc_mala_agreement():
+def test_hmc_mala_agreement() -> None:
     """HMC with 1 step is equivalent to MALA"""
     model = StdNormal()
     init = np.array([0.2])
@@ -28,6 +28,7 @@ def test_hmc_mala_agreement():
     np.testing.assert_array_almost_equal(draws_1, draws_2)
     # make sure we didn't just stay at the initial value forever
     assert len(np.unique(draws_1)) > 20
+
 
 def test_metropolis_hastings_reduces_to_metropolis() -> None:
     """Metropolis Hastings is equivalent to Metropolis when the proposal is symmetric"""

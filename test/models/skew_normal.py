@@ -21,14 +21,14 @@ class SkewNormal:
         return 1
 
     def log_density(self, params_unc: npt.NDArray[np.float64]) -> float:
-        return sst.skewnorm.logpdf(params_unc, self.a, loc=self._loc)[0]
+        return sst.skewnorm.logpdf(params_unc, self.a, loc=self._loc)[0]  # type: ignore # scipy is not typed
 
     def log_density_gradient(
         self, params_unc: npt.NDArray[np.float64]
     ) -> tuple[float, npt.NDArray[np.float64]]:
         lp = self.log_density(params_unc)
         lp_plus_epsilon = self.log_density(params_unc + self._epsilon)
-        return lp, np.array([(lp - lp_plus_epsilon)/self._epsilon])
+        return lp, np.array([(lp - lp_plus_epsilon) / self._epsilon])
 
     def posterior_mean(self) -> float:
         return sst.skewnorm.mean(self.a, loc=self._loc)  # type: ignore # scipy is not typed
