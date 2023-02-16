@@ -7,6 +7,11 @@ from .model_types import GradModel
 
 Draw = tuple[NDArray[np.float64], float]
 
+# Note: MALA is an instance of a Metropolis-Hastings algorithm, but we do not
+# implement it here as a subclass in order to cache gradient calls.
+# Naively implementing MALA as MH via callbacks requires three gradient
+# calls per iteration, this implementation only requires one
+
 
 class MALA:
     def __init__(
@@ -44,9 +49,7 @@ class MALA:
             theta_prop, self._theta, self._log_p_grad_theta
         )
         lp_reverse = self._proposal_log_density(self._theta, theta_prop, grad_prop)
-        # Note: we opt for code reuse here rather than subclassing MH directly,
-        # in order to cache gradient calls (naively implementing MALA as MH requires
-        # three calls per iteration, this implementation only requires one)
+
         if metropolis_hastings_accept_test(
             lp_prop,
             self._log_p_theta,
