@@ -6,13 +6,21 @@ FloatType = np.float64
 IntType = np.int64
 VectorType = npt.NDArray[FloatType]
 
-def _first_even_neg_pair_start(chain: VectorType) -> IntType:
-    """
-    Return the index of first element of the sequence whose sum with the following
-    element is negative, or the length of the sequence if there is no such element.
+def _end_pos_pairs(chain: VectorType) -> IntType:
+    """Return the index of first element of the sequence whose sum with
+
+    the following element is negative, or the length of the sequence if
+    there is no such element.  Equivalently, this is the upper bound for
+    the range of indexes that come in positive pairs starting from 0.
+    For exmaple, `_end_pos_pairs([1, -.5, .25, -.3]) == 2` because the
+    first pair (1, -.5) is positive whereas the second pair (.25 + -.3)
+    is negative.  Contrast this with `_end_pos_pairs([1, -.5, .25, -.1])
+    = 4`, in the case where the second pair (.25, -.1) is positive.
+    Trailing odd elements are ignored, so `_end_pos_pairs([1, -.5, .25, -.3, .05]) == 2`
+    and `_end_pos_pairs([1, -.5, .25, -.1, .05]) = 4`.
     
     Parameters:
-    chain: input sequence
+    chain: input sequence (typically of autocorrelations)
 
     Return:
     index of first element whose sum with following element is negative, or
@@ -24,7 +32,7 @@ def _first_even_neg_pair_start(chain: VectorType) -> IntType:
         if chain[n] + chain[n + 1] < 0:
             return n
         n += 2
-    return N
+    return n
 
 def ess_ipse(chain: VectorType) -> FloatType:
     """
@@ -43,7 +51,7 @@ def ess_ipse(chain: VectorType) -> FloatType:
     if len(chain) < 4:
         raise ValueError(f"ess requires len(chains) >= 4, but {len(chain)=}")
     acor = autocorr(chain)
-    n = _first_even_neg_pair_start(acor)
+    n = _end_pos_pairs(acor)
     iat = 2 * acor[0:n].sum() - 1
     ess = len(chain) / iat
     return ess
@@ -72,7 +80,7 @@ def ess_imse(chain: VectorType) -> FloatType:
     if len(chain) < 4:
         raise ValueError(f"ess requires len(chains) >=4, but {len(chain) = }")
     acor = autocorr(chain)
-    n = _first_even_neg_pair_start(acor)
+    n = _end_pos_pairs(acor)
     prev_min = acor[0] + acor[1]
     # convex minorization to enforce monotonic downward estimates uses slow loop
     accum = prev_min

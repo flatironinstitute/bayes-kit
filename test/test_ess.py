@@ -56,3 +56,18 @@ def test_ess_exceptions():
             bk.ess_imse(v)
         with pt.raises(ValueError):
             bk.ess_ipse(v)
+
+from bayes_kit.ess import _end_pos_pairs
+            
+def pair_start_tester(chain, expected_pos):
+    np.testing.assert_equal(expected_pos, _end_pos_pairs(chain))
+            
+def test_end_pos_pairs():
+    pair_start_tester([], 0)
+    pair_start_tester([1], 0)
+    pair_start_tester([1, -0.5], 2)
+    pair_start_tester([1, -0.5, 0.25], 2)
+    pair_start_tester([1, -0.5, 0.25, -0.3], 2)
+    pair_start_tester([1, -0.5, 0.25, -0.1], 4)
+    pair_start_tester([1, -0.5, 0.25, -0.3, 0.05], 2)
+    pair_start_tester([1, -0.5, 0.25, -0.1, 0.05], 4)
