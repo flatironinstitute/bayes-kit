@@ -6,7 +6,7 @@ FloatType = np.float64
 IntType = np.int64
 VectorType = npt.NDArray[FloatType]
 
-def first_neg_pair_start(chain: VectorType) -> IntType:
+def _first_even_neg_pair_start(chain: VectorType) -> IntType:
     """
     Return the index of first element of the sequence whose sum with the following
     element is negative, or the length of the sequence if there is no such element.
@@ -43,7 +43,7 @@ def ess_ipse(chain: VectorType) -> FloatType:
     if len(chain) < 4:
         raise ValueError(f"ess requires len(chains) >= 4, but {len(chain)=}")
     acor = autocorr(chain)
-    n = first_neg_pair_start(acor)
+    n = _first_even_neg_pair_start(acor)
     iat = 2 * acor[0:n].sum() - 1
     ess = len(chain) / iat
     return ess
@@ -72,9 +72,9 @@ def ess_imse(chain: VectorType) -> FloatType:
     if len(chain) < 4:
         raise ValueError(f"ess requires len(chains) >=4, but {len(chain) = }")
     acor = autocorr(chain)
-    n = first_neg_pair_start(acor)
+    n = _first_even_neg_pair_start(acor)
     prev_min = acor[0] + acor[1]
-    # convex minorization uses slow loop
+    # convex minorization to enforce monotonic downward estimates uses slow loop
     accum = prev_min
     i = 2
     while i + 1 < n:

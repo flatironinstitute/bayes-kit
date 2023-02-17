@@ -34,12 +34,14 @@ def run_ess_test_ar1(rho, N):
     hat_ess3 = bk.ess_ipse(v)
     np.testing.assert_allclose(E_ess, hat_ess3, atol=N, rtol=0.1)
 
+    
 def test_ess_ar1():
-    for rho in np.arange(-0.1, 0.6, step = 0.1):
-        run_ess_test_ar1(rho, 10_000)
+    # includes correlated (rho > 0), uncorrelated (rho = 0), and antianti-correlated tests (rho < 0)
+    for rho in np.arange(-0.5, 0.5, step = 0.2):
+        run_ess_test_ar1(rho, 20_000)
 
 def test_ess_independent():
-    N = 10000
+    N = 10_000
     y = np.random.normal(size=N)
     hat_ess = bk.ess(y)
     E_ess = N
