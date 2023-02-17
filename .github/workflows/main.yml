@@ -28,6 +28,13 @@ jobs:
         run: |
           pip install -e .[test]
 
+      - name: Formatting and type checking
+        if: matrix.python-version == '3.11'
+        run: |
+          pip install mypy black
+          black --check .
+          mypy --strict .
+
       - name: Run tests
         run: |
           pytest -v --cov=bayes_kit test/
