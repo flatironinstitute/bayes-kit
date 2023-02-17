@@ -4,7 +4,7 @@ import numpy as np
 
 from .model_types import GradModel
 
-Sample = tuple[NDArray[np.float64], float]
+Draw = tuple[NDArray[np.float64], float]
 
 
 class HMCDiag:
@@ -22,13 +22,13 @@ class HMCDiag:
         self._stepsize = stepsize
         self._steps = steps
         self._metric = metric_diag or np.ones(self._dim)
-        self._rand = np.random.default_rng(seed)
-        self._theta = init or self._rand.normal(size=self._dim)
+        self._rng = np.random.default_rng(seed)
+        self._theta = init or self._rng.normal(size=self._dim)
 
-    def __iter__(self) -> Iterator[Sample]:
+    def __iter__(self) -> Iterator[Draw]:
         return self
 
-    def __next__(self) -> Sample:
+    def __next__(self) -> Draw:
         return self.sample()
 
     def joint_logp(self, theta: NDArray[np.float64], rho: NDArray[np.float64]) -> float:
@@ -47,12 +47,12 @@ class HMCDiag:
             rho = rho_mid + 0.5 * self._stepsize * np.multiply(self._metric, grad)
         return (theta, rho)
 
-    def sample(self) -> Sample:
-        rho = self._rand.normal(size=self._dim)
+    def sample(self) -> Draw:
+        rho = self._rng.normal(size=self._dim)
         logp = self.joint_logp(self._theta, rho)
         theta_prop, rho_prop = self.leapfrog(self._theta, rho)
         logp_prop = self.joint_logp(theta_prop, rho_prop)
-        if np.log(self._rand.uniform()) < logp_prop - logp:
+        if np.log(self._rng.uniform()) < logp_prop - logp:
             self._theta = theta_prop
             return self._theta, logp_prop
         return self._theta, logp
