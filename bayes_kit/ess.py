@@ -6,25 +6,31 @@ FloatType = np.float64
 IntType = np.int64
 VectorType = npt.NDArray[FloatType]
 
-def _end_pos_pairs(chain: VectorType) -> IntType:
-    """Return the index of first element of the sequence whose sum with
 
-    the following element is negative, or the length of the sequence if
-    there is no such element.  Equivalently, this is the upper bound for
-    the range of indexes that come in positive pairs starting from 0.
-    For exmaple, `_end_pos_pairs([1, -.5, .25, -.3]) == 2` because the
-    first pair (1, -.5) is positive whereas the second pair (.25 + -.3)
-    is negative.  Contrast this with `_end_pos_pairs([1, -.5, .25, -.1])
-    = 4`, in the case where the second pair (.25, -.1) is positive.
-    Trailing odd elements are ignored, so `_end_pos_pairs([1, -.5, .25, -.3, .05]) == 2`
-    and `_end_pos_pairs([1, -.5, .25, -.1, .05]) = 4`.
-    
+def _end_pos_pairs(chain: VectorType) -> IntType:
+    """Return the index that is 1 past the last positive pair of values
+    starting on an even index. The even index pairs are (0, 1), (2, 3),
+    (4, 5), ...  The algorithm looks at the pairs in order, and returns
+    1 plus the second index of the last such pair that has a positive
+    sum.
+
+    Examples:
+    ```python
+    _end_pos_pairs([]) = 0
+    _end_pos_pairs([1]) = 0
+    _end_pos_pairs([1, 0.4]) = 2
+    _end_pos_pairs([1, -0.4]) = 2
+    _end_pos_pairs([1, -0.5, 0.25, -0.3]) == 2
+    _end_pos_pairs([1, -0.5, 0.25, -0.1]) == 4
+    _end_pos_pairs([1, -0.5, 0.25, -0.3, 0.05]) == 2
+    _end_pos_pairs([1, -0.5, 0.25, -0.1, 0.05]) == 4
+    ```
+
     Parameters:
-    chain: input sequence (typically of autocorrelations)
+        chain: Input sequence (typically of autocorrelations).
 
     Return:
-    index of first element whose sum with following element is negative, or
-    the number of elements if there is no such element
+        The index 1 past the last positive pair of values starting on an even index
     """
     N = len(chain)
     n = 0
@@ -34,16 +40,17 @@ def _end_pos_pairs(chain: VectorType) -> IntType:
         n += 2
     return n
 
+
 def ess_ipse(chain: VectorType) -> FloatType:
     """
     Return an estimate of the effective sample size (ESS) of the specified Markov chain
     using the initial positive sequence estimator (IPSE).
 
     Parameters:
-    chain: Markov chain whose ESS is returned
+        chain: Markov chain whose ESS is returned
 
     Return:
-    estimated effective sample size for the specified Markov chain
+        estimated effective sample size for the specified Markov chain
 
     Raises:
         ValueError: if there are fewer than 4 elements in the chain
@@ -56,6 +63,7 @@ def ess_ipse(chain: VectorType) -> FloatType:
     ess = len(chain) / iat
     return ess
 
+
 def ess_imse(chain: VectorType) -> FloatType:
     """
     Return an estimate of the effective sample size (ESS) of the specified Markov chain
@@ -66,16 +74,16 @@ def ess_imse(chain: VectorType) -> FloatType:
     This estimator was introduced in the following paper.
 
     Geyer, C.J., 1992. Practical Markov chain Monte Carlo. Statistical Science
-    7(4):473--483. 
-    
+    7(4):473--483.
+
     Parameters:
-    chain: Markov chain whose ESS is returned
+        chain: Markov chain whose ESS is returned
 
     Return:
-    estimated effective sample size for the specified Markov chain
+        estimated effective sample size for the specified Markov chain
 
     Throws:
-    ValueError: if there are fewer than 4 elements in the chain
+        ValueError: if there are fewer than 4 elements in the chain
     """
     if len(chain) < 4:
         raise ValueError(f"ess requires len(chains) >=4, but {len(chain) = }")
@@ -94,6 +102,7 @@ def ess_imse(chain: VectorType) -> FloatType:
     ess = len(chain) / iat
     return ess
 
+
 def ess(chain: VectorType) -> FloatType:
     """
     Return an estimate of the effective sample size of the specified Markov chain
@@ -101,14 +110,12 @@ def ess(chain: VectorType) -> FloatType:
     to `ess_imse()`.
 
     Parameters:
-    chain: Markov chains whose ESS is returned
+        chain: Markov chains whose ESS is returned
 
     Return:
-    estimated effective sample size for the specified Markov chain
+        estimated effective sample size for the specified Markov chain
 
     Throws:
-    ValueError: if there are fewer than 4 elements in the chain
-    """    
+        ValueError: if there are fewer than 4 elements in the chain
+    """
     return ess_imse(chain)
-    
-
