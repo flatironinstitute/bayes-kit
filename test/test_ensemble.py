@@ -3,7 +3,17 @@ from bayes_kit.ensemble import AffineInvariantWalker
 import numpy as np
 import pytest as pt
 
+def run_iterator_test(sampler, model) -> None:
+    with np.testing.assert_no_warnings():
+        i = 0
+        for m in sampler:
+            # make sure we can take 10 draws
+            if i > 10:
+                break
+            i += 1
+
 def run_sampling_test(sampler, model) -> None:
+    run_iterator_test(sampler, model)
     D = sampler._dim
     K = sampler._num_walkers
     M = 10000

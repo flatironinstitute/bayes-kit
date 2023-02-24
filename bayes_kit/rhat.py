@@ -1,8 +1,10 @@
 import numpy as np
+from numpy.typing import NDArray, ArrayLike
 
 FloatType = np.float64
-VectorType = np.typing.NDArray[FloatType]
-SeqType = np.typing.ArrayLike
+VectorType = NDArray[FloatType]
+SeqType = ArrayLike
+
 
 def rhat(chains: list[SeqType]) -> FloatType:
     """
@@ -35,6 +37,7 @@ def rhat(chains: list[SeqType]) -> FloatType:
     means = [np.mean(chain) for chain in chains_array]
     vars = [np.var(chain, ddof=1) for chain in chains_array]
     r_hat: np.float64 = np.sqrt(
-        (mean_chain_length - 1) / mean_chain_length + np.var(means, ddof=1) / np.mean(vars)
+        (mean_chain_length - 1) / mean_chain_length
+        + np.var(means, ddof=1) / np.mean(vars)
     )
     return r_hat

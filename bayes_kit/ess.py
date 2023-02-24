@@ -91,7 +91,7 @@ def ess_ipse(chain: VectorType) -> float:
     acor = autocorr(chain)
     n = first_neg_pair_start(acor)
     sigma_sq_hat = acor[0] + 2 * acor[1:n].sum()
-    ess = len(chain) / sigma_sq_hat
+    ess : float = len(chain) / sigma_sq_hat
     return ess
 
 def ess_imse(chain: VectorType) -> float:
@@ -129,7 +129,7 @@ def ess_imse(chain: VectorType) -> float:
         i = i + 2
     # end diff code
     sigma_sq_hat = acor[0] + 2 * accum
-    ess = len(chain) / sigma_sq_hat
+    ess: float = len(chain) / sigma_sq_hat
     return ess
 
 def ess(chain: VectorType) -> float:
