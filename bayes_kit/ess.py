@@ -2,19 +2,18 @@ import numpy as np
 import numpy.typing as npt
 
 FloatType = np.float64
-IntType = np.int64
+IntType = int
 VectorType = npt.NDArray[FloatType]
 
 def autocorr_fft(chain: VectorType) -> VectorType:
-    """
-    Return sample autocorrelations at all lags for the specified sequence.
+    """Return the sample autocorrelations at all lags for the specified sequence.
     Algorithmically, this function calls a fast Fourier transform (FFT).
 
     Parameters:
-    chain: sequence whose autocorrelation is returned
+        chain (VectorType): The sequence whose autocorrelation is returned.
 
     Returns:
-    autocorrelation estimates at all lags for the specified sequence
+        Autocorrelation estimates at all lags for the specified sequence.
     """
     size = 2 ** np.ceil(np.log2(2 * len(chain) - 1)).astype("int")
     var = np.var(chain)
@@ -22,24 +21,23 @@ def autocorr_fft(chain: VectorType) -> VectorType:
     fft = np.fft.fft(ndata, size)
     pwr = np.abs(fft) ** 2
     N = len(ndata)
-    acorr = np.fft.ifft(pwr).real / var / N
+    acorr: VectorType = np.fft.ifft(pwr).real / var / N
     return acorr
 
 def autocorr_np(chain: VectorType) -> VectorType:
-    """
-    Return sample autocorrelations at all lags for the specified sequence.
-    Algorithmically, this function delegates to the Numpy `correlation()` function.
+    """Return sample autocorrelations at all lags for the specified sequence.
+    Algorithmically, this function delegates to the NumPy `correlation()` function.
 
     Parameters:
-    chain: sequence whose autocorrelation is returned
+        chain (VectorType): sequence whose autocorrelation is returned
 
     Returns:
-    autocorrelation estimates at all lags for the specified sequence
+        The autocorrelation estimates at all lags for the specified sequence.
     """
     chain_ctr = chain - np.mean(chain)
     N = len(chain_ctr)
-    acorrN = np.correlate(chain_ctr, chain_ctr, "full")[N - 1 :]
-    return acorrN / N
+    acorr: VectorType = np.correlate(chain_ctr, chain_ctr, "full")[N - 1 :] / N
+    return acorr
 
 def autocorr(chain: VectorType) -> VectorType:
     """
@@ -74,7 +72,7 @@ def first_neg_pair_start(chain: VectorType) -> IntType:
         n = n + 2
     return N
 
-def ess_ipse(chain: VectorType) -> FloatType:
+def ess_ipse(chain: VectorType) -> float:
     """
     Return an estimate of the effective sample size (ESS) of the specified Markov chain
     using the initial positive sequence estimator (IPSE).
@@ -92,11 +90,11 @@ def ess_ipse(chain: VectorType) -> FloatType:
         raise ValueError(f"ess requires len(chains) >=4, but {len(chain) = }")
     acor = autocorr(chain)
     n = first_neg_pair_start(acor)
-    sigma_sq_hat = acor[0] + 2 * sum(acor[1:n])
-    ess = len(chain) / sigma_sq_hat
+    sigma_sq_hat = acor[0] + 2 * acor[1:n].sum()
+    ess : float = len(chain) / sigma_sq_hat
     return ess
 
-def ess_imse(chain: VectorType) -> FloatType:
+def ess_imse(chain: VectorType) -> float:
     """
     Return an estimate of the effective sample size (ESS) of the specified Markov chain
     using the initial monotone sequence estimator (IMSE).  This is the most accurate
@@ -131,10 +129,10 @@ def ess_imse(chain: VectorType) -> FloatType:
         i = i + 2
     # end diff code
     sigma_sq_hat = acor[0] + 2 * accum
-    ess = len(chain) / sigma_sq_hat
+    ess: float = len(chain) / sigma_sq_hat
     return ess
 
-def ess(chain: VectorType) -> FloatType:
+def ess(chain: VectorType) -> float:
     """
     Return an estimate of the effective sample size of the specified Markov chain
     using the default ESS estimator (currently IMSE).  Evaluated by delegating
