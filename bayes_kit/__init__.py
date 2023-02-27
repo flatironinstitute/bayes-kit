@@ -1,6 +1,7 @@
 # functions
 from .autocorr import autocorr
 from .ess import ess, ess_imse, ess_ipse
+from .iat import iat, iat_imse, iat_ipse
 from .rhat import rhat
 
 # classes
