@@ -63,13 +63,14 @@ def iat_ipse(chain: VectorType) -> FloatType:
     where `Z = {..., -2, -1, 0, 1, 2, ...}` is the set of integers.
 
     Because the autocorrelations are symmetric, `autocorr[n] == autocorr[-n]` and
-    `autocorr[0] = 1`, the sum reduces to
+    `autocorr[0] = 1`, if we double count the non-negative entries, we will have
+    counted `autocorr[0]`, which is 1, twice, so we subtract 1, to get
 
     ```
-    IAT = -1 + 2 * SUM_{n in N} autocorr[n],
+    IAT = -1 + 2 * SUM_{n in Nat} autocorr[n],
     ```
 
-    where `N = {0, 1, 2, ...}` is the set of natural numbers.
+    where `Nat = {0, 1, 2, ...}` is the set of natural numbers.
 
     References:
         Geyer, Charles J. 2011. “Introduction to Markov Chain Monte Carlo.”
@@ -149,7 +150,7 @@ def iat(chain: VectorType) -> FloatType:
     chain: A Markov chain.
 
     Return:
-    The integrated autocorrelation time (IAT) fo the specified chain.
+    The integrated autocorrelation time (IAT) for the specified chain.
 
     Throws:
     ValueError: If there are fewer than 4 elements in the chain.
