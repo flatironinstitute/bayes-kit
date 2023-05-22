@@ -94,7 +94,7 @@ class MetropolisHastings:
         self._rng = np.random.default_rng(seed)
         self._proposal_fn = proposal_fn
         self._transition_lp_fn = transition_lp_fn
-        self._theta = init or self._rng.normal(size=self._dim)
+        self._theta = init if init is not None else self._rng.normal(size=self._dim)
         self._log_p_theta = self._model.log_density(self._theta)
 
     def __iter__(self) -> Iterator[Draw]:

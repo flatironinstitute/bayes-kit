@@ -25,7 +25,7 @@ class MALA:
         self._epsilon = epsilon
         self._dim = self._model.dims()
         self._rng = np.random.default_rng(seed)
-        self._theta = init or self._rng.normal(size=self._dim)
+        self._theta = init if init is not None else self._rng.normal(size=self._dim)
         self._log_p_theta, logpgrad = self._model.log_density_gradient(self._theta)
         self._log_p_grad_theta = np.asanyarray(logpgrad)
 

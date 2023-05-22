@@ -33,7 +33,7 @@ class Stretcher:
     #     self._drawshape = (self._walkers, self._dim)
     #     if init != None and init.shape != self._drawshape:
     #         raise ValueError(f"init must be shape of draw {self._drawshape}; found {init.shape=}")
-    #     self._thetas = init or np.random.normal(size=self._drawshape)
+    #     self._thetas = init if init is not None else np.random.normal(size=self._drawshape)
     #     self._firsthalf = range(halfwalkers)
     #     self._secondhalf = range(halfwalkers, walkers)
 
