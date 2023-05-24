@@ -23,7 +23,11 @@ class HMCDiag:
         self._steps = steps
         self._metric = metric_diag or np.ones(self._dim)
         self._rng = np.random.default_rng(seed)
-        self._theta = init if init is not None else self._rng.normal(size=self._dim)
+        self._theta = (
+            init
+            if (init is not None and init.shape != (0,))
+            else self._rng.normal(size=self._dim)
+        )
 
     def __iter__(self) -> Iterator[Draw]:
         return self
