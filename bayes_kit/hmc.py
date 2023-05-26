@@ -42,13 +42,16 @@ class HMCDiag:
     def leapfrog(
         self, theta: NDArray[np.float64], rho: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        # TODO(bob-carpenter): refactor to share non-initial and non-final updates
+        # Initialize rho_mid by going backwards half a step so that the first full-step inside the loop brings rho_mid
+        # up to +1/2 steps. Note that if self._steps == 0, the loop is skipped and the -0.5 and +0.5 steps cancel.
+        lp, grad = self._model.log_density_gradient(theta)
+        rho_mid = rho - 0.5 * self._stepsize * np.multiply(self._metric, grad)
         for n in range(self._steps):
-            lp, grad = self._model.log_density_gradient(theta)
-            rho_mid = rho + 0.5 * self._stepsize * np.multiply(self._metric, grad)
+            rho_mid = rho_mid + self._stepsize * np.multiply(self._metric, grad)
             theta = theta + self._stepsize * rho_mid
             lp, grad = self._model.log_density_gradient(theta)
-            rho = rho_mid + 0.5 * self._stepsize * np.multiply(self._metric, grad)
+        # Final half-step for rho
+        rho = rho_mid + 0.5 * self._stepsize * np.multiply(self._metric, grad)
         return (theta, rho)
 
     def sample(self) -> Draw:
