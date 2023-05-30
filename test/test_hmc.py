@@ -2,6 +2,34 @@ from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
 from bayes_kit.hmc import HMCDiag
 import numpy as np
+import functools
+import pytest
+
+
+def _call_counter(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        wrapper.calls += 1
+        return f(*args, **kwargs)
+
+    wrapper.calls = 0
+    return wrapper
+
+
+@pytest.mark.parametrize("steps", [0, 1, 10])
+def test_hmc_leapfrog_num_evals(steps) -> None:
+    # Expect that HMC.leapfrog calls log_density only once per step
+    model = StdNormal()
+    model.log_density = _call_counter(model.log_density)
+    model.log_density_gradient = _call_counter(model.log_density_gradient)
+
+    hmc = HMCDiag(model, steps=steps, stepsize=0.25)
+    _ = hmc.sample()
+
+    # Expect one call to log_density before leapfrog and one after
+    assert model.log_density.calls == 2
+    # Expect one call to log_density_gradient per leapfrog step, plus one for initial/final half step
+    assert model.log_density_gradient.calls == hmc._steps + 1
 
 
 def test_hmc_diag_std_normal() -> None:
