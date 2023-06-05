@@ -98,8 +98,7 @@ densities that end in the target density.
 
 #### Likelihood annealed sequential Monte Carlo sampler
 
-In this approach to SMC, the target at step `n` is proportional is
-proportional to
+In this approach to SMC, the target at step `n` is proportional to
 
 ```
 p(theta | y)^t[n] * p(theta),
