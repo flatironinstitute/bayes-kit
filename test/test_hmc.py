@@ -39,7 +39,10 @@ def test_hmc_diag_std_normal() -> None:
     hmc = HMCDiag(model, steps=10, stepsize=0.25, init=init)
 
     M = 10000
-    draws = np.array([hmc.sample()[0] for _ in range(M)])
+    #draws = np.array([hmc.sample()[0] for _ in range(M)])
+    draws = np.zeros(M)
+    for i in range(M):
+        draws[i] = hmc.sample()[0]
 
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
@@ -69,13 +72,17 @@ def test_hmc_binom() -> None:
         model, stepsize=0.08, steps=3, init=np.array([model.initial_state(0)])
     )
 
-    draws = model.constrain_draws(np.array([hmc.sample()[0] for _ in range(M)]))
+    #draws = model.constrain_draws(np.array([hmc.sample()[0] for _ in range(M)]))
+    draws = np.zeros(M)
+    for i in range(M):
+        draws[i] = hmc.sample()[0]
+    draws = model.constrain_draws(draws)
 
     # skip 100 draws as a "burn-in" to try to make estimates less noisy
     mean = draws[100:].mean(axis=0)
     var = draws[100:].var(axis=0, ddof=1)
 
-    print(f"{draws[1:10]=}")
+    print(f"{draws[:10]=}")
     print(f"{mean=}  {var=}")
     print(f"acceptance rate : {1 - (draws[1:] == draws[:-1] ).sum() / M}")
 
