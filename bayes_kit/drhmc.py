@@ -2,6 +2,7 @@ from typing import Iterator, Optional, Union, Tuple, Callable
 from numpy.typing import NDArray
 import numpy as np
 
+from numpy.linalg import norm
 from .model_types import GradModel
 
 Draw = tuple[NDArray[np.float64], float]
@@ -69,17 +70,60 @@ class DRHMC:
     
     def sample(self) -> Draw:
         rho = self._rng.normal(size=self._dim)
+        log_denom = 0
         for k in range(self._num_proposals):
             stepsize, steps = self.get_stepsize(k), self.get_steps(k)
             theta_prop, rho_prop = self.leapfrog(self._theta, rho, stepsize, steps)
             rho_prop *= -1
-            accept_logp = self.accept(self._theta, rho, theta_prop, rho_prop, k)
+            accept_logp = self.accept(self._theta, rho, theta_prop, rho_prop, k, log_denom)
+            log_denom += 1 - np.exp(accept_logp)
             if np.log(self._rng.uniform()) < accept_logp:
                 self._theta, rho = theta_prop, rho_prop
                 break
         logp = self.joint_logp(self._theta, rho)
         return self._theta, logp
+
+    def accept(
+        self, theta: NDArray[np.float64], rho: NDArray[np.float64], 
+        theta_prop: NDArray[np.float64], rho_prop: NDArray[np.float64],
+        k: int, log_denom: float
+    ) -> float:
+        logp = self.joint_logp(theta, rho)
+        logp_prop = self.joint_logp(theta_prop, rho_prop)
+        # log_num, log_denom = 0, 0
+        log_num = 0
+        for i in range(k):
+            stepsize, steps = self._stepsize_list[i], self._steps_list[i]
+            
+            theta_ghost, rho_ghost = self.leapfrog(theta_prop, rho_prop, stepsize, steps)
+            rho_ghost *= -1
+            accept_logp = self.accept(theta_prop, rho_prop, theta_ghost, rho_ghost, i)
+            reject_logp = np.log1p(-np.exp(accept_logp) + 1e-16)
+            log_num += reject_logp
+            
+            # theta_old, rho_old = self.leapfrog(theta, rho, stepsize, steps)
+            # rho_old *= -1
+            # accept_logp = self.accept(theta, rho, theta_old, rho_old, i)
+            # reject_logp = np.log1p(-np.exp(accept_logp) + 1e-16)
+            # log_denom += reject_logp
+        return min(0., (logp_prop - logp) + (log_num - log_denom))
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     # def sample(self) -> Draw:
     #     rho = self._rng.normal(size=self._dim)
     #     self._theta, logp = self.sample_recurse(self._theta, rho, 0)
@@ -97,26 +141,3 @@ class DRHMC:
     #         return theta, self.joint_logp(theta, rho)
     #     else:
     #         return self.sample_recurse(theta, rho, proposal + 1)
-
-    def accept(
-        self, theta: NDArray[np.float64], rho: NDArray[np.float64], 
-        theta_prop: NDArray[np.float64], rho_prop: NDArray[np.float64], k: int
-    ) -> float:
-        logp = self.joint_logp(theta, rho)
-        logp_prop = self.joint_logp(theta_prop, rho_prop)
-        log_num, log_denom = 0, 0
-        for i in range(k):
-            stepsize, steps = self._stepsize_list[i], self._steps_list[i]
-            
-            theta_ghost, rho_ghost = self.leapfrog(theta_prop, rho_prop, stepsize, steps)
-            rho_ghost *= -1
-            accept_logp = self.accept(theta_prop, rho_prop, theta_ghost, rho_ghost, i)
-            reject_logp = np.log1p(-np.exp(accept_logp))
-            log_num += reject_logp
-            
-            theta_reject, rho_reject = self.leapfrog(theta, rho, stepsize, steps)
-            rho_reject *= -1
-            accept_logp = self.accept(theta, rho, theta_reject, rho_reject, i)
-            reject_logp = np.log1p(-np.exp(accept_logp))
-            log_denom += reject_logp
-        return min(0., (logp_prop - logp) + (log_num - log_denom))
