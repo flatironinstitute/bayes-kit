@@ -1,6 +1,6 @@
 from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
-from bayes_kit.hmc import HMCDiag
+from bayes_kit.algorithms import HMCDiag
 import numpy as np
 import functools
 import pytest

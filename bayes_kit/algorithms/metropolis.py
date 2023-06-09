@@ -2,7 +2,7 @@ from typing import Callable, Iterator, Optional, Union
 from numpy.typing import NDArray, ArrayLike
 import numpy as np
 
-from .model_types import LogDensityModel
+from bayes_kit.model_types import LogDensityModel
 
 # TODO: Add to global type definitions
 Vector = NDArray[np.float64]

@@ -1,5 +1,5 @@
 from test.models.binomial import Binomial
-from bayes_kit.smc import TemperedLikelihoodSMC, metropolis_kernel
+from bayes_kit.algorithms.smc import TemperedLikelihoodSMC, metropolis_kernel
 import numpy as np
 
 

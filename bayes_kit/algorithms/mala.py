@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 import numpy as np
 
 from .metropolis import metropolis_hastings_accept_test
-from .model_types import GradModel
+from bayes_kit.model_types import GradModel
 
 Draw = tuple[NDArray[np.float64], float]
 

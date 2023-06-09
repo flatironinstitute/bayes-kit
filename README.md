@@ -12,16 +12,17 @@ variance estimates.
 
 ```python
 import numpy as np
-from bayes_kit.mala import MALA
+from bayes_kit.algorithms import MALA
+
 
 class StdNormal:
-	def dims(self):
-		return 1
-	def log_density(self, theta):
-		return -0.5 * theta[0]**2
-	def log_density_gradient(self, theta):
-		return self.log_density(theta), -theta
-	
+    def dims(self):
+        return 1
+    def log_density(self, theta):
+        return -0.5 * theta[0] ** 2
+    def log_density_gradient(self, theta):
+        return self.log_density(theta), -theta
+
 model = StdNormal()
 sampler = MALA(model, 0.2)
 M = 1000

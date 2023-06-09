@@ -1,6 +1,6 @@
 from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
-from bayes_kit.mala import MALA
+from bayes_kit.algorithms import MALA
 import numpy as np
 
 

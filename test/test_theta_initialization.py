@@ -2,9 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 from unittest.mock import Mock
 
-from bayes_kit.hmc import HMCDiag
-from bayes_kit.mala import MALA
-from bayes_kit.metropolis import Metropolis, MetropolisHastings
+from bayes_kit.algorithms import HMCDiag, MALA, Metropolis, MetropolisHastings
 from bayes_kit.model_types import HessianModel
 
 

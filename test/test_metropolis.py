@@ -2,7 +2,7 @@ from typing import Callable
 from test.models.std_normal import StdNormal
 from test.models.binomial import Binomial
 from test.models.skew_normal import SkewNormal
-from bayes_kit.metropolis import (
+from bayes_kit.algorithms.metropolis import (
     Metropolis,
     MetropolisHastings,
     metropolis_accept_test,
