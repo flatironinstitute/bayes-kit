@@ -1,6 +1,7 @@
-from typing import Callable, Iterator, Union
+from typing import Callable, Iterator
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+from bayes_kit.model_types import LogPriorLikelihoodModel
 
 Vector = NDArray[np.float64]
 DensityFunction = Callable[[Vector], float]
@@ -10,11 +11,10 @@ Kernel = Callable[[Vector, DensityFunction], ArrayLike]
 class TemperedLikelihoodSMC:
     def __init__(
         self,
+        model: LogPriorLikelihoodModel,
         M: int,
         N: int,
         sample_initial: Callable[[int], ArrayLike],
-        log_likelihood: DensityFunction,
-        log_prior: DensityFunction,
         kernel: Kernel,
     ) -> None:
 
@@ -23,9 +23,14 @@ class TemperedLikelihoodSMC:
         self.thetas = np.array(list(map(sample_initial, range(M))))
         self.D = self.thetas.shape[1]
 
-        self.log_prior = log_prior
-        self.log_likelihood = log_likelihood
+        self._model = model
         self.kernel = kernel
+
+    def log_prior(self, theta: Vector) -> float:
+        return self._model.log_prior(theta)
+
+    def log_likelihood(self, theta: Vector) -> float:
+        return self._model.log_likelihood(theta)
 
     def __iter__(self) -> Iterator[Vector]:
         self.run()
