@@ -1,65 +1,111 @@
-from typing import Iterator, Optional, Union
-from numpy.typing import NDArray
 import numpy as np
+import pydantic
+from pydantic_numpy import NDArray as PydanticNDArray
+from typing import Optional, NamedTuple
 
+from bayes_kit.protocols import ArrayType, SeedType
 from bayes_kit.model_types import GradModel
+from .base_mcmc import BaseMCMC
 
-Draw = tuple[NDArray[np.float64], float]
 
+class HMCDiag(BaseMCMC):
+    model: GradModel  # Declare the model subtype to make type checkers happy
+    short_name = "HMCDiag"
+    description = "Hamiltonian Monte Carlo with diagonal metric"
 
-class HMCDiag:
     def __init__(
         self,
         model: GradModel,
         stepsize: float,
         steps: int,
-        metric_diag: Optional[NDArray[np.float64]] = None,
-        init: Optional[NDArray[np.float64]] = None,
-        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
+        metric_diag: Optional[ArrayType] = None,
+        *,
+        init: Optional[ArrayType] = None,
+        seed: Optional[SeedType] = None,
     ):
-        self._model = model
-        self._dim = self._model.dims()
+        super().__init__(model=model, init=init, seed=seed)
         self._stepsize = stepsize
         self._steps = steps
         self._metric = metric_diag or np.ones(self._dim)
-        self._rng = np.random.default_rng(seed)
-        self._theta = (
-            init
-            if (init is not None and init.shape != (0,))
-            else self._rng.normal(size=self._dim)
-        )
 
-    def __iter__(self) -> Iterator[Draw]:
-        return self
-
-    def __next__(self) -> Draw:
-        return self.sample()
-
-    def joint_logp(self, theta: NDArray[np.float64], rho: NDArray[np.float64]) -> float:
+    def joint_logp(self, theta: ArrayType, rho: ArrayType) -> float:
         adj: float = 0.5 * np.dot(rho, self._metric * rho)
-        return self._model.log_density(theta) - adj
+        return self.model.log_density(theta) - adj
 
     def leapfrog(
-        self, theta: NDArray[np.float64], rho: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        self, theta: ArrayType, rho: ArrayType
+    ) -> tuple[ArrayType, ArrayType]:
         # Initialize rho_mid by going backwards half a step so that the first full-step inside the loop brings rho_mid
         # up to +1/2 steps. Note that if self._steps == 0, the loop is skipped and the -0.5 and +0.5 steps cancel.
-        lp, grad = self._model.log_density_gradient(theta)
+        lp, grad = self.model.log_density_gradient(theta)
         rho_mid = rho - 0.5 * self._stepsize * np.multiply(self._metric, grad)
         for n in range(self._steps):
             rho_mid = rho_mid + self._stepsize * np.multiply(self._metric, grad)
             theta = theta + self._stepsize * rho_mid
-            lp, grad = self._model.log_density_gradient(theta)
+            lp, grad = self.model.log_density_gradient(theta)
         # Final half-step for rho
         rho = rho_mid + 0.5 * self._stepsize * np.multiply(self._metric, grad)
         return (theta, rho)
 
-    def sample(self) -> Draw:
+    def step(self):
         rho = self._rng.normal(size=self._dim)
         logp = self.joint_logp(self._theta, rho)
         theta_prop, rho_prop = self.leapfrog(self._theta, rho)
         logp_prop = self.joint_logp(theta_prop, rho_prop)
         if np.log(self._rng.uniform()) < logp_prop - logp:
             self._theta = theta_prop
-            return self._theta, logp_prop
-        return self._theta, logp
+            return self._theta, {"logp": logp_prop, "accepted": True}
+        return self._theta, {"logp": logp, "accepted": False}
+
+    class Params(BaseMCMC.Params):
+        stepsize: float = pydantic.Field(description="Size of each leapfrog step")
+        steps: int = pydantic.Field(description="Number of leapfrog steps")
+        metric_diag: Optional[PydanticNDArray] = pydantic.Field(description="Diagonal of metric matrix", default=None)
+
+        @pydantic.validator("stepsize")
+        def stepsize_positive(cls, v):
+            if v <= 0:
+                raise ValueError("stepsize must be positive")
+            return v
+
+        @pydantic.validator("steps")
+        def steps_positive(cls, v):
+            if v <= 0:
+                raise ValueError("steps must be positive")
+            return v
+
+        @pydantic.validator("metric_diag")
+        def metric_diag_positive(cls, v):
+            if np.any(v <= 0):
+                raise ValueError("metric_diag must be positive")
+            return v
+
+    @classmethod
+    def new_from_params(cls, params: Params, **kwargs) -> "HMCDiag":
+        return cls(model=kwargs.pop('model'),
+                   stepsize=params.stepsize,
+                   steps=params.steps,
+                   metric_diag=params.metric_diag,
+                   seed=params.seed)
+
+    class State(NamedTuple):
+        theta: ArrayType
+        rng: np.random.Generator
+        stepsize: float
+        steps: int
+        metric: ArrayType
+
+    def get_state(self) -> State:
+        return HMCDiag.State(
+            theta=self._theta,
+            rng=self._rng,
+            stepsize=self._stepsize,
+            steps=self._steps,
+            metric=self._metric)
+
+    def set_state(self, state: State):
+        self._theta = state.theta
+        self._stepsize = state.stepsize
+        self._steps = state.steps
+        self._metric = state.metric
+        self._rng = state.rng

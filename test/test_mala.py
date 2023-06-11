@@ -11,7 +11,7 @@ def test_mala_std_normal() -> None:
     mala = MALA(model, 0.3, init)
 
     M = 10000
-    draws = np.array([mala.sample()[0] for _ in range(M)])
+    draws = np.array([mala.step()[0] for _ in range(M)])
 
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
@@ -25,7 +25,7 @@ def test_mala_binom() -> None:
     M = 1200
     mala = MALA(model, 0.07, init=np.array([model.initial_state(0)]))
 
-    draws = model.constrain_draws(np.array([mala.sample()[0] for _ in range(M)]))
+    draws = model.constrain_draws(np.array([mala.step()[0] for _ in range(M)]))
 
     # skip 200 draws as a "burn-in" to try to make estimates less noisy
     mean = draws[200:].mean(axis=0)
@@ -48,9 +48,9 @@ def test_mala_repr() -> None:
     mala_3 = MALA(model, 0.3, init, seed=321)
 
     M = 25
-    draws_1 = np.array([mala_1.sample()[0] for _ in range(M)])
-    draws_2 = np.array([mala_2.sample()[0] for _ in range(M)])
-    draws_3 = np.array([mala_3.sample()[0] for _ in range(M)])
+    draws_1 = np.array([mala_1.step()[0] for _ in range(M)])
+    draws_2 = np.array([mala_2.step()[0] for _ in range(M)])
+    draws_3 = np.array([mala_3.step()[0] for _ in range(M)])
 
     np.testing.assert_array_equal(draws_1, draws_2)
     # Confirm that different results occur with different seeds

@@ -22,8 +22,8 @@ def test_hmc_mala_agreement() -> None:
     mala = MALA(model, epsilon=0.5 * epsilon_hmc**2, init=init, seed=123)
 
     M = 50
-    draws_1 = np.array([hmc.sample()[0] for _ in range(M)])
-    draws_2 = np.array([mala.sample()[0] for _ in range(M)])
+    draws_1 = np.array([hmc.step()[0] for _ in range(M)])
+    draws_2 = np.array([mala.step()[0] for _ in range(M)])
 
     np.testing.assert_array_almost_equal(draws_1, draws_2)
     # make sure we didn't just stay at the initial value forever
@@ -44,7 +44,7 @@ def test_metropolis_hastings_reduces_to_metropolis() -> None:
         [sst.skewnorm.rvs(skewness_a, loc=t, random_state=gen)]
     )
     metropolis = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1848)
-    draws_from_metropolis = np.array([metropolis.sample()[0] for _ in range(M)])
+    draws_from_metropolis = np.array([metropolis.step()[0] for _ in range(M)])
 
     gen = np.random.default_rng(seed=12345)
     proposal_fn = lambda t: np.array(
@@ -53,6 +53,6 @@ def test_metropolis_hastings_reduces_to_metropolis() -> None:
     mh = MetropolisHastings(
         model, proposal_fn=proposal_fn, transition_lp_fn=t_lp_fn, init=init, seed=1848
     )
-    draws_from_mh = np.array([mh.sample()[0] for _ in range(M)])
+    draws_from_mh = np.array([mh.step()[0] for _ in range(M)])
 
     np.testing.assert_array_equal(draws_from_metropolis, draws_from_mh)

@@ -1,15 +1,13 @@
-from typing import Callable, Iterator, Optional, Union
-from numpy.typing import NDArray, ArrayLike
 import numpy as np
+from numpy.typing import ArrayLike
+from typing import Optional, Callable
 
+from bayes_kit.protocols import ArrayType, SeedType
 from bayes_kit.model_types import LogDensityModel
+from .base_mcmc import BaseMCMC
 
-# TODO: Add to global type definitions
-Vector = NDArray[np.float64]
-Draw = tuple[Vector, float]
-# s.b. (TO_STATE, FROM_STATE) -> log_prob (float)
-TransitionLPFn = Callable[[Vector, Vector], float]
-Seed = Union[int, np.random.BitGenerator, np.random.Generator]
+ProposalFn = Callable[[ArrayType], ArrayLike]
+TransitionLPFn = Callable[[ArrayType, ArrayType], float]
 
 
 def metropolis_accept_test(
@@ -79,54 +77,46 @@ def metropolis_hastings_accept_test(
     return log_uniform_random < adjusted_log_acceptance_ratio
 
 
-class MetropolisHastings:
+class MetropolisHastings(BaseMCMC):
+
+    model: LogDensityModel  # Declare the model subtype to make type checkers happy
+    short_name = "MetropolisHastings"
+    description = "Metropolis Hastings sampler"
+
     def __init__(
         self,
         model: LogDensityModel,
-        proposal_fn: Callable[[Vector], ArrayLike],
+        proposal_fn: ProposalFn,
         transition_lp_fn: TransitionLPFn,
         *,
-        init: Optional[Vector] = None,
-        seed: Optional[Seed] = None,
+        init: Optional[ArrayType] = None,
+        seed: Optional[SeedType] = None,
     ):
-        self._model = model
-        self._dim = self._model.dims()
-        self._rng = np.random.default_rng(seed)
+        super().__init__(model=model, init=init, seed=seed)
         self._proposal_fn = proposal_fn
         self._transition_lp_fn = transition_lp_fn
-        self._theta = (
-            init
-            if (init is not None and init.shape != (0,))
-            else self._rng.normal(size=self._dim)
-        )
-        self._log_p_theta = self._model.log_density(self._theta)
+        self._log_p_theta = self.model.log_density(self._theta)
 
-    def __iter__(self) -> Iterator[Draw]:
-        return self
-
-    def __next__(self) -> Draw:
-        return self.sample()
-
-    def sample(self) -> Draw:
+    def step(self):
         proposal, lp_proposal = self._propose()
         accepted = self._accept_test(lp_proposal, proposal)
         if accepted:
             self._update_theta(proposal, lp_proposal)
-        return (self._theta, self._log_p_theta)
+        return self._theta, {"logp": self._log_p_theta, "accepted": accepted}
 
-    def _propose(self) -> Draw:
+    def _propose(self) -> tuple[ArrayType, float]:
         untyped_proposed_theta = np.asanyarray(
             self._proposal_fn(self._theta), dtype=np.float64
         )
-        proposed_theta: NDArray[np.float64] = untyped_proposed_theta
-        lp_proposed_theta = self._model.log_density(proposed_theta)
+        proposed_theta: ArrayType = untyped_proposed_theta
+        lp_proposed_theta = self.model.log_density(proposed_theta)
         return (proposed_theta, lp_proposed_theta)
 
-    def _update_theta(self, theta: Vector, log_p_theta: float) -> None:
+    def _update_theta(self, theta: ArrayType, log_p_theta: float) -> None:
         self._theta = theta
         self._log_p_theta = log_p_theta
 
-    def _accept_test(self, lp_proposal: float, proposal: Vector) -> bool:
+    def _accept_test(self, lp_proposal: float, proposal: ArrayType) -> bool:
         lp_forward_transition = self._transition_lp_fn(proposal, self._theta)
         lp_reverse_transition = self._transition_lp_fn(self._theta, proposal)
         return metropolis_hastings_accept_test(
@@ -137,22 +127,61 @@ class MetropolisHastings:
             self._rng,
         )
 
+    class Params(BaseMCMC.Params):
+        # TODO: let proposal_fn and transition_lp_fn be specified by command-line
+        #  arguments by implementing a proposal distribution factory
+        ...
+
+    class State(BaseMCMC.State):
+        logp: float
+        prop_fn: ProposalFn
+        transition_lp_fn: TransitionLPFn
+
+    def get_state(self) -> State:
+        return MetropolisHastings.State(theta=self._theta,
+                                        rng=self._rng,
+                                        logp=self._log_p_theta,
+                                        prop_fn=self._proposal_fn,
+                                        transition_lp_fn=self._transition_lp_fn)
+
+    def set_state(self, state: State):
+        self._theta = state.theta
+        self._rng = state.rng
+        self._log_p_theta = state.logp
+        self._proposal_fn = state.prop_fn
+        self._transition_lp_fn = state.transition_lp_fn
+
+    @classmethod
+    def new_from_params(cls, params: BaseMCMC.Params, **kwargs) -> "MetropolisHastings":
+        if "proposal_fn" not in kwargs:
+            raise ValueError("proposal_fn must be specified")
+        if "transition_lp_fn" not in kwargs:
+            raise ValueError("transition_lp_fn must be specified")
+        return cls(model=kwargs.pop('model'),
+                   proposal_fn=kwargs.pop('proposal_fn'),
+                   transition_lp_fn=kwargs.pop('transition_lp_fn'),
+                   seed=params.seed)
+
 
 class Metropolis(MetropolisHastings):
     def __init__(
         self,
         model: LogDensityModel,
-        proposal_fn: Callable[[Vector], ArrayLike],
+        proposal_fn: ProposalFn,
         *,
-        init: Optional[Vector] = None,
-        seed: Optional[Seed] = None,
+        init: Optional[ArrayType] = None,
+        seed: Optional[SeedType] = None,
     ):
         # This transition function will never be used--it isn't needed for Metropolis,
         # for which the transition probabilities are symmetric. But we need a valid one
         # for the superclass' constructor.
         dummy_transition_fn: TransitionLPFn = lambda a, b: 1
-        super().__init__(model, proposal_fn, dummy_transition_fn, init=init, seed=seed)
+        super().__init__(model,
+                         proposal_fn=proposal_fn,
+                         transition_lp_fn=dummy_transition_fn,
+                         init=init,
+                         seed=seed)
 
     # 'proposal' isn't used, but we need signature consistency to override the parent method
-    def _accept_test(self, lp_proposal: float, proposal: Vector) -> bool:
+    def _accept_test(self, lp_proposal: float, proposal: ArrayType) -> bool:
         return metropolis_accept_test(lp_proposal, self._log_p_theta, self._rng)

@@ -109,7 +109,7 @@ def test_metropolis_std_normal() -> None:
     proposal_fn = lambda theta: gen.normal(loc=theta, scale=4)
     metropolis = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1777)
 
-    draws = np.array([metropolis.sample()[0] for _ in range(M)])
+    draws = np.array([metropolis.step()[0] for _ in range(M)])
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
 
@@ -124,7 +124,7 @@ def test_metropolis_binom() -> None:
     proposal_fn = lambda theta: np.random.normal(loc=theta, scale=4)
     metropolis = Metropolis(model, proposal_fn=proposal_fn, init=init)
 
-    draws = model.constrain_draws(np.array([metropolis.sample()[0] for _ in range(M)]))
+    draws = model.constrain_draws(np.array([metropolis.step()[0] for _ in range(M)]))
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
 
@@ -153,7 +153,7 @@ def test_metropolis_hastings_skew_normal() -> None:
         model, proposal_fn=p_fn, transition_lp_fn=trns_lp_fn, init=init, seed=1777
     )
 
-    draws = np.array([mh.sample()[0] for _ in range(M)])
+    draws = np.array([mh.step()[0] for _ in range(M)])
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
 
@@ -171,18 +171,18 @@ def test_metropolis_reproducible() -> None:
     metropolis_1 = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1848)
     # Each model needs to be sampled from before instantiating the next, or they
     # trip over each other's pRNG trajectories
-    draws_1 = np.array([metropolis_1.sample()[0] for _ in range(M)])
+    draws_1 = np.array([metropolis_1.step()[0] for _ in range(M)])
 
     # reinitialize proposal generator for each model
     proposal_generator = np.random.default_rng(seed=12345)
     proposal_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)  # type: ignore
     metropolis_2 = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1848)
-    draws_2 = np.array([metropolis_2.sample()[0] for _ in range(M)])
+    draws_2 = np.array([metropolis_2.step()[0] for _ in range(M)])
 
     proposal_generator = np.random.default_rng(seed=12345)
     proposal_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)  # type: ignore
     metropolis_3 = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1912)
-    draws_3 = np.array([metropolis_3.sample()[0] for _ in range(M)])
+    draws_3 = np.array([metropolis_3.step()[0] for _ in range(M)])
 
     np.testing.assert_array_equal(draws_1, draws_2)
     # Now confirm that results do not match when a different seed is used
@@ -216,7 +216,7 @@ def test_metropolis_hastings_reproducible() -> None:
         init=init,
         seed=1848,
     )
-    draws_1 = np.array([mh_1.sample()[0] for _ in range(M)])
+    draws_1 = np.array([mh_1.step()[0] for _ in range(M)])
 
     proposal_generator = np.random.default_rng(seed=12345)
     proposal_fn = skewnorm_proposal_fn_factory(skewness_a, proposal_generator)
@@ -227,7 +227,7 @@ def test_metropolis_hastings_reproducible() -> None:
         init=init,
         seed=1848,
     )
-    draws_2 = np.array([mh_2.sample()[0] for _ in range(M)])
+    draws_2 = np.array([mh_2.step()[0] for _ in range(M)])
 
     proposal_generator = np.random.default_rng(seed=12345)
     proposal_fn = skewnorm_proposal_fn_factory(skewness_a, proposal_generator)
@@ -238,7 +238,7 @@ def test_metropolis_hastings_reproducible() -> None:
         init=init,
         seed=518,
     )
-    draws_3 = np.array([mh_3.sample()[0] for _ in range(M)])
+    draws_3 = np.array([mh_3.step()[0] for _ in range(M)])
 
     np.testing.assert_array_equal(draws_1, draws_2)
     with np.testing.assert_raises(AssertionError):
@@ -265,7 +265,7 @@ def test_metropolis_hastings_next_trajectory_matches_calling_sample() -> None:
     mh1 = MetropolisHastings(
         model, proposal_fn=p_fn, transition_lp_fn=x_fn, init=init, seed=996
     )
-    draws_1 = np.array([mh1.sample()[0] for _ in range(M)])
+    draws_1 = np.array([mh1.step()[0] for _ in range(M)])
 
     proposal_generator = np.random.default_rng(seed=123)
     p_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)  # type: ignore
@@ -283,4 +283,4 @@ def test_metropolis_hastings_throws_when_proposal_fn_generates_wrong_type() -> N
     transition_lp_fn = lambda x, y: 1
     mh = MetropolisHastings(model, proposal_fn, transition_lp_fn)
     with np.testing.assert_raises(ValueError):
-        _ = mh.sample()
+        _ = mh.step()
