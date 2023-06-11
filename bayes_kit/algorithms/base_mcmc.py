@@ -61,11 +61,18 @@ class BaseMCMC(ABC, InferenceAlgorithm[ArrayType], InitFromParams):
         self.model = model
         self._dim = self.model.dims()
         self._rng = np.random.default_rng(seed)
-        self._theta = (
-            init
-            if (init is not None and init.shape != (0,))
-            else self._rng.normal(size=self._dim)
-        )
+        if init is None:
+            self._theta = self._rng.normal(size=self._dim)
+        else:
+            init = np.asarray(init)
+            if init.size == 0:
+                self._theta = self._rng.normal(size=self._dim)
+            elif init.size != self._dim:
+                raise ValueError(
+                    f"init must be a array with {self._dim} elements, but is shape {init.shape}"
+                )
+            else:
+                self._theta = np.atleast_1d(init.squeeze())
 
     @abstractmethod
     def step(self) -> tuple[ArrayType, ExtrasType]:
