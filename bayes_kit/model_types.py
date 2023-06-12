@@ -25,3 +25,11 @@ class HessianModel(GradModel, Protocol):
         self, params_unc: NDArray[np.float64]
     ) -> Tuple[float, ArrayLike, ArrayLike]:
         ...  # pragma: no cover
+
+
+class LogPriorLikelihoodModel(LogDensityModel, Protocol):
+    def log_prior(self, params_unc: NDArray[np.float64]) -> float:
+        ...  # pragma: no cover
+
+    def log_likelihood(self, params_unc: NDArray[np.float64]) -> float:
+        ...  # pragma: no cover

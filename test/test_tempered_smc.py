@@ -8,11 +8,10 @@ def test_rwm_smc_binom() -> None:
     M = 75
     N = 15
     rwm_smc = TemperedLikelihoodSMC(
+        model,
         M,
         N,
         model.initial_state,
-        model.log_likelihood,
-        model.log_prior,
         metropolis_kernel(0.5),
     )
 
