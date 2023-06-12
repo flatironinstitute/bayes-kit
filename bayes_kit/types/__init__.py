@@ -1,6 +1,7 @@
 from .numeric import (
     ArrayLike,
     ArrayType,
+    PydanticNDArray,
     SeedType,
 )
 

@@ -4,15 +4,15 @@ from typing import Protocol
 
 class HasState(Protocol):
     """A class that implements the HasState protocol must be able to serialize its
-    state into a tuple (or namedtuple) using get_state and deserialize using set_state
+    state into a pydantic model using get_state and deserialize using set_state.
     """
 
-    def get_state(self) -> tuple:
+    def get_state(self) -> pydantic.BaseModel:
         """Get a copy of the current state or parameters.
         """
         ...
 
-    def set_state(self, state: tuple) -> None:
+    def set_state(self, state: pydantic.BaseModel) -> None:
         """Set the state or parameters.
         """
         ...

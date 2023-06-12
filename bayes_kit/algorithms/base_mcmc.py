@@ -2,12 +2,20 @@ import numpy as np
 import pydantic
 from abc import ABC, abstractmethod
 
-from bayes_kit.types import InferenceAlgorithm, InitFromParams, ExtrasType, \
-    ArrayType, SeedType, LogDensityModel
-from typing import Optional, NamedTuple
+from bayes_kit.types import (
+    LogDensityModel,
+    InferenceAlgorithm,
+    ExtrasType,
+    ArrayType,
+    PydanticNDArray,
+    SeedType,
+    HasState,
+    InitFromParams
+)
+from typing import Optional
 
 
-class BaseMCMC(ABC, InferenceAlgorithm[ArrayType], InitFromParams):
+class BaseMCMC(ABC, InferenceAlgorithm[ArrayType], InitFromParams, HasState):
     @property
     @abstractmethod
     def short_name(self) -> str:
@@ -39,16 +47,20 @@ class BaseMCMC(ABC, InferenceAlgorithm[ArrayType], InitFromParams):
 
     # Ensure that subclasses implement the HasState Protocol
 
-    class State(NamedTuple):
-        ...
+    class State(pydantic.BaseModel):
+        theta: PydanticNDArray
+        rng: tuple | dict
 
-    @abstractmethod
-    def get_state(self) -> State:
-        ...
+    def get_state(self) -> pydantic.BaseModel:
+        return BaseMCMC.State(
+            theta=self._theta,
+            rng=self._rng.bit_generator.state,
+        )
 
-    @abstractmethod
-    def set_state(self, state: State):
-        ...
+    def set_state(self, state: pydantic.BaseModel):
+        state = BaseMCMC.State(**state.dict(include={"theta", "rng"}))
+        self._theta = state.theta
+        self._rng.bit_generator.state = state.rng
 
     # Base init handles rng and init size checking
 

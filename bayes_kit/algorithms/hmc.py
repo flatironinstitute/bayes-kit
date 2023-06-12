@@ -87,24 +87,21 @@ class HMCDiag(BaseMCMC):
                    metric_diag=params.metric_diag,
                    seed=params.seed)
 
-    class State(NamedTuple):
-        theta: ArrayType
-        rng: tuple
+    class State(BaseMCMC.State):
         stepsize: float
         steps: int
-        metric: ArrayType
+        metric: PydanticNDArray
 
-    def get_state(self) -> State:
+    def get_state(self) -> pydantic.BaseModel:
         return HMCDiag.State(
-            theta=self._theta,
-            rng=self._rng.bit_generator.state,
             stepsize=self._stepsize,
             steps=self._steps,
-            metric=self._metric)
+            metric=self._metric,
+            **super().get_state().dict())
 
-    def set_state(self, state: State):
-        self._theta = state.theta
-        self._rng.bit_generator.state = state.rng
+    def set_state(self, state: pydantic.BaseModel):
+        state = HMCDiag.State(**state.dict())
+        super().set_state(state)
         self._stepsize = state.stepsize
         self._steps = state.steps
         self._metric = state.metric

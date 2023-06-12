@@ -1,12 +1,11 @@
 import numpy as np
-from typing import NamedTuple
-
-from bayes_kit.types import DistributionApproximation, ArrayType, WeightedSamples
+import pydantic
+from bayes_kit.types import DistributionApproximation, ArrayType, WeightedSamples, PydanticNDArray
 
 
 class InMemorySamplingApproximation(DistributionApproximation):
-    class State(NamedTuple):
-        samples: list[ArrayType]
+    class State(pydantic.BaseModel):
+        samples: list[PydanticNDArray]
         thinning: int
         burn_in: int
         index: int
@@ -18,6 +17,9 @@ class InMemorySamplingApproximation(DistributionApproximation):
         self.index = 0
 
     def get_state(self) -> State:
+        # Note: not trusting the caller and copying the samples list. This is likely a
+        # performance bottleneck. Ideally would provide some sort of read-only view
+        # or lazy copy-on-write semantics.
         return InMemorySamplingApproximation.State(
             samples=self.samples.copy(),
             thinning=self.thinning,
@@ -26,6 +28,7 @@ class InMemorySamplingApproximation(DistributionApproximation):
         )
 
     def set_state(self, state: State) -> None:
+        # See note on copy() in get_state()
         self.samples = state.samples.copy()
         self.thinning = state.thinning
         self.burn_in = state.burn_in

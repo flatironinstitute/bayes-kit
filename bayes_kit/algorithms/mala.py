@@ -1,8 +1,8 @@
 import numpy as np
 import pydantic
-from typing import Optional, Callable, NamedTuple
+from typing import Optional, Callable
 
-from bayes_kit.types import GradModel, ArrayType, SeedType
+from bayes_kit.types import GradModel, ArrayType, SeedType, PydanticNDArray
 from .base_mcmc import BaseMCMC
 
 Vector = ArrayType
@@ -88,25 +88,21 @@ class MALA(BaseMCMC):
     def new_from_params(cls, params: Params, **kwargs) -> "MALA":
         return cls(model=kwargs.pop('model'), epsilon=params.epsilon, **kwargs)
 
-    class State(NamedTuple):
-        theta: ArrayType
-        rng: tuple
+    class State(BaseMCMC.State):
         epsilon: float
         log_p_theta: float
-        log_p_grad_theta: ArrayType
+        log_p_grad_theta: PydanticNDArray
 
-    def get_state(self) -> State:
-        return self.State(
-            theta=self._theta,
-            rng=self._rng.bit_generator.state,
+    def get_state(self) -> pydantic.BaseModel:
+        return MALA.State(
             epsilon=self._epsilon,
             log_p_theta=self._log_p_theta,
             log_p_grad_theta=self._log_p_grad_theta,
-        )
+            **super().get_state().dict())
 
-    def set_state(self, state: State):
-        self._theta = state.theta
-        self._rng.bit_generator.state = state.rng
+    def set_state(self, state: pydantic.BaseModel):
+        state = MALA.State(**state.dict())
+        super().set_state(state)
         self._epsilon = state.epsilon
         self._log_p_theta = state.log_p_theta
         self._log_p_grad_theta = state.log_p_grad_theta

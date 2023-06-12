@@ -154,26 +154,25 @@ class MetropolisHastings(BaseMCMC):
             else:
                 raise ValueError("seed must be None, int, or np.random.Generator")
 
-    class State(NamedTuple):
-        theta: ArrayType
-        rng: tuple
-        prop_rng: tuple
+    class State(BaseMCMC.State):
+        prop_rng: tuple | dict
         logp: float
         # TODO - instead of storing names, store the functions themselves
         prop_fn_name: str
         transition_lp_fn_name: str
 
-    def get_state(self) -> State:
-        return MetropolisHastings.State(theta=self._theta,
-                                        rng=self._rng.bit_generator.state,
-                                        prop_rng=self._prop_rng.bit_generator.state,
-                                        logp=self._log_p_theta,
-                                        prop_fn_name=self._proposal_fn.__name__,
-                                        transition_lp_fn_name=self._transition_lp_fn.__name__)
+    def get_state(self) -> pydantic.BaseModel:
+        return MetropolisHastings.State(
+            prop_rng=self._prop_rng.bit_generator.state,
+            logp=self._log_p_theta,
+            prop_fn_name=self._proposal_fn.__name__,
+            transition_lp_fn_name=self._transition_lp_fn.__name__,
+            **super().get_state().dict(),
+        )
 
-    def set_state(self, state: State):
-        self._theta = state.theta
-        self._rng.bit_generator.state = state.rng
+    def set_state(self, state: pydantic.BaseModel):
+        state = MetropolisHastings.State(**state.dict())
+        super().set_state(state)
         self._prop_rng.bit_generator.state = state.prop_rng
         self._log_p_theta = state.logp
         assert self._proposal_fn.__name__ == state.prop_fn_name, \
