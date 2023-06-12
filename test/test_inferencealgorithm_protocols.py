@@ -26,3 +26,11 @@ def test_algorithm_state_repeatable(algorithm_cls_and_kwargs, grad_model):
     for _ in range(10):
         step_result1, _ = algo1.step()
     assert algo1.get_state() == algo2.get_state()
+
+
+def test_algorithm_init_from_params(algorithm_cls_and_params_and_kwargs, grad_model):
+    # Just checking that this doesn't raise an error
+    cls, params, kwargs = algorithm_cls_and_params_and_kwargs
+    algo = cls.new_from_params(params, model=grad_model, **kwargs)
+    for _ in range(10):
+        step_result, _ = algo.step()

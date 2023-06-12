@@ -48,3 +48,16 @@ _met_init_kwargs = {
 )
 def algorithm_cls_and_kwargs(request):
     return request.param
+
+
+@pytest.fixture(
+    params=[
+        (HMCDiag, HMCDiag.Params(**_hmc_init_kwargs), {}),
+        (MALA, MALA.Params(**_mala_init_kwargs), {}),
+        (MetropolisHastings, MetropolisHastings.Params(seed=_mh_init_kwargs["seed"]), _mh_init_kwargs),
+        (Metropolis, Metropolis.Params(seed=_met_init_kwargs["seed"]), _met_init_kwargs),
+    ],
+    ids=["HMCDiag", "MALA", "MetropolisHastings", "Metropolis"],
+)
+def algorithm_cls_and_params_and_kwargs(request):
+    return request.param
