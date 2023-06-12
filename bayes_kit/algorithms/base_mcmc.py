@@ -2,9 +2,8 @@ import numpy as np
 import pydantic
 from abc import ABC, abstractmethod
 
-from bayes_kit.protocols import InferenceAlgorithm, InitFromParams, ExtrasType, \
-    ArrayType, SeedType
-from bayes_kit.model_types import LogDensityModel
+from bayes_kit.types import InferenceAlgorithm, InitFromParams, ExtrasType, \
+    ArrayType, SeedType, LogDensityModel
 from typing import Optional, NamedTuple
 
 

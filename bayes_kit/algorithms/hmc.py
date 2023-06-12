@@ -3,8 +3,7 @@ import pydantic
 from pydantic_numpy import NDArray as PydanticNDArray
 from typing import Optional, NamedTuple
 
-from bayes_kit.protocols import ArrayType, SeedType
-from bayes_kit.model_types import GradModel
+from bayes_kit.types import GradModel, ArrayType, SeedType
 from .base_mcmc import BaseMCMC
 
 

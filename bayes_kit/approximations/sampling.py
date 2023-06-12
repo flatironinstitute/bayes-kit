@@ -1,7 +1,7 @@
 import numpy as np
 from typing import NamedTuple
 
-from bayes_kit.protocols import DistributionApproximation, ArrayType, WeightedSamples
+from bayes_kit.types import DistributionApproximation, ArrayType, WeightedSamples
 
 
 class InMemorySamplingApproximation(DistributionApproximation):

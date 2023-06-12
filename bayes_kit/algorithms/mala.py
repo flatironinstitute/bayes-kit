@@ -2,8 +2,7 @@ import numpy as np
 import pydantic
 from typing import Optional, Callable, NamedTuple
 
-from bayes_kit.protocols import ArrayType, SeedType
-from bayes_kit.model_types import GradModel
+from bayes_kit.types import GradModel, ArrayType, SeedType
 from .base_mcmc import BaseMCMC
 
 Vector = ArrayType

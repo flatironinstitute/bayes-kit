@@ -1,11 +1,9 @@
 from typing import Callable, Iterator
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
-from bayes_kit.model_types import LogPriorLikelihoodModel
+from bayes_kit.types import LogPriorLikelihoodModel, ArrayType, ArrayLike
 
-Vector = NDArray[np.float64]
-DensityFunction = Callable[[Vector], float]
-Kernel = Callable[[Vector, DensityFunction], ArrayLike]
+DensityFunction = Callable[[ArrayType], float]
+Kernel = Callable[[ArrayType, DensityFunction], ArrayLike]
 
 
 class TemperedLikelihoodSMC:
@@ -26,13 +24,13 @@ class TemperedLikelihoodSMC:
         self._model = model
         self.kernel = kernel
 
-    def log_prior(self, theta: Vector) -> float:
+    def log_prior(self, theta: ArrayType) -> float:
         return self._model.log_prior(theta)
 
-    def log_likelihood(self, theta: Vector) -> float:
+    def log_likelihood(self, theta: ArrayType) -> float:
         return self._model.log_likelihood(theta)
 
-    def __iter__(self) -> Iterator[Vector]:
+    def __iter__(self) -> Iterator[ArrayType]:
         self.run()
         return iter(self.thetas)
 
@@ -44,10 +42,10 @@ class TemperedLikelihoodSMC:
         return n / self.N
 
     def transition(self, n: int) -> None:
-        def lpminus1(theta: Vector) -> float:
+        def lpminus1(theta: ArrayType) -> float:
             return self.log_likelihood(theta) * self.time(n - 1) + self.log_prior(theta)
 
-        def lp(theta: Vector) -> float:
+        def lp(theta: ArrayType) -> float:
             return self.log_likelihood(theta) * self.time(n) + self.log_prior(theta)
 
         # note: try to do this in parallel
@@ -62,8 +60,8 @@ class TemperedLikelihoodSMC:
 
 # TODO(bward): factor out
 def importance_resample(
-    thetas: Vector, lpminus1: DensityFunction, lp: DensityFunction
-) -> Vector:
+    thetas: ArrayType, lpminus1: DensityFunction, lp: DensityFunction
+) -> ArrayType:
     weights = np.exp(
         np.apply_along_axis(lp, axis=1, arr=thetas)
         - np.apply_along_axis(lpminus1, axis=1, arr=thetas)
@@ -77,10 +75,10 @@ def importance_resample(
 
 # TODO(bward): factor out/reuse Metropolis sampler
 def metropolis_kernel(scale: float) -> Kernel:
-    def proposal_rng(theta: Vector) -> Vector:
+    def proposal_rng(theta: ArrayType) -> ArrayType:
         return np.random.normal(loc=theta, scale=scale)
 
-    def metropolis(theta: Vector, lp: DensityFunction) -> Vector:
+    def metropolis(theta: ArrayType, lp: DensityFunction) -> ArrayType:
         theta_star = proposal_rng(theta)
         if np.log(np.random.uniform()) < lp(theta_star) - lp(theta):
             return theta_star

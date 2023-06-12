@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 from unittest.mock import Mock
 
 from bayes_kit.algorithms import HMCDiag, MALA, Metropolis, MetropolisHastings
-from bayes_kit.model_types import HessianModel
+from bayes_kit.types import HessianModel
 
 
 def assert_not_empty_array(a: NDArray[np.float64]):

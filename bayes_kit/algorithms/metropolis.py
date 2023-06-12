@@ -4,8 +4,7 @@ from typing import Optional, Callable, NamedTuple
 from copy import deepcopy
 import pydantic
 
-from bayes_kit.protocols import ArrayType, SeedType
-from bayes_kit.model_types import LogDensityModel
+from bayes_kit.types import LogDensityModel, ArrayType, SeedType
 from .base_mcmc import BaseMCMC
 
 ProposalFn = Callable[[ArrayType, np.random.Generator], ArrayLike]
