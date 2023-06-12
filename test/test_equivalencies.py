@@ -39,19 +39,17 @@ def test_metropolis_hastings_reduces_to_metropolis() -> None:
     init = np.random.normal(loc=0, scale=1, size=[1])
     t_lp_fn = lambda o, g: sst.skewnorm.logpdf(o, skewness_a, loc=g)[0]
 
-    gen = np.random.default_rng(seed=12345)
-    proposal_fn = lambda t: np.array(
-        [sst.skewnorm.rvs(skewness_a, loc=t, random_state=gen)]
+    proposal_fn = lambda t, rng: np.array(
+        [sst.skewnorm.rvs(skewness_a, loc=t, random_state=rng)]
     )
-    metropolis = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1848)
+    metropolis = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1848, prop_seed=12345)
     draws_from_metropolis = np.array([metropolis.step()[0] for _ in range(M)])
 
-    gen = np.random.default_rng(seed=12345)
-    proposal_fn = lambda t: np.array(
-        [sst.skewnorm.rvs(skewness_a, loc=t, random_state=gen)]
+    proposal_fn = lambda t, rng: np.array(
+        [sst.skewnorm.rvs(skewness_a, loc=t, random_state=rng)]
     )
     mh = MetropolisHastings(
-        model, proposal_fn=proposal_fn, transition_lp_fn=t_lp_fn, init=init, seed=1848
+        model, proposal_fn=proposal_fn, transition_lp_fn=t_lp_fn, init=init, seed=1848, prop_seed=12345
     )
     draws_from_mh = np.array([mh.step()[0] for _ in range(M)])
 

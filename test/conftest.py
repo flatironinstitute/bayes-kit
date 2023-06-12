@@ -21,14 +21,18 @@ def log_prior_likelihood_model(request):
 _hmc_init_kwargs = {"stepsize": 0.01, "steps": 100, "seed": 461145}
 _mala_init_kwargs = {"epsilon": 0.01, "seed": 361484}
 _mh_init_kwargs = {
-    "proposal_fn": lambda theta: np.array([sst.skewnorm.rvs(4, loc=theta)]),
+    "proposal_fn": lambda theta, rng: np.array(
+        [sst.skewnorm.rvs(4, loc=theta, random_state=rng)]
+    ),
     "transition_lp_fn": lambda observation, given: sst.skewnorm.logpdf(
         observation, 4, loc=given
     )[0],
     "seed": 1298815,
 }
 _met_init_kwargs = {
-    "proposal_fn": lambda theta: np.array([sst.skewnorm.rvs(4, loc=theta)]),
+    "proposal_fn": lambda theta, rng: np.array(
+        [sst.skewnorm.rvs(4, loc=theta, random_state=rng)]
+    ),
     "seed": 189189,
 }
 

@@ -1,12 +1,14 @@
 import numpy as np
 from numpy.typing import ArrayLike
 from typing import Optional, Callable, NamedTuple
+from copy import deepcopy
+import pydantic
 
 from bayes_kit.protocols import ArrayType, SeedType
 from bayes_kit.model_types import LogDensityModel
 from .base_mcmc import BaseMCMC
 
-ProposalFn = Callable[[ArrayType], ArrayLike]
+ProposalFn = Callable[[ArrayType, np.random.Generator], ArrayLike]
 TransitionLPFn = Callable[[ArrayType, ArrayType], float]
 
 
@@ -91,11 +93,21 @@ class MetropolisHastings(BaseMCMC):
         *,
         init: Optional[ArrayType] = None,
         seed: Optional[SeedType] = None,
+        prop_seed: Optional[SeedType] = None,
     ):
         super().__init__(model=model, init=init, seed=seed)
         self._proposal_fn = proposal_fn
         self._transition_lp_fn = transition_lp_fn
         self._log_p_theta = self.model.log_density(self._theta)
+        # Semantically, if seed is set but prop_seed is not, expected behavior is that
+        # everything should nonetheless be reproducible from seed. To handle this case,
+        # we'll match the prop seed to the main seed but then advance the prop generator
+        # by a bit so that they don't match value-for-value.
+        if seed is not None and prop_seed is None:
+            self._prop_rng = deepcopy(self._rng)
+            self._prop_rng.bytes(128)
+        else:
+            self._prop_rng = np.random.default_rng(prop_seed)
 
     def step(self):
         proposal, lp_proposal = self._propose()
@@ -106,7 +118,7 @@ class MetropolisHastings(BaseMCMC):
 
     def _propose(self) -> tuple[ArrayType, float]:
         untyped_proposed_theta = np.asanyarray(
-            self._proposal_fn(self._theta), dtype=np.float64
+            self._proposal_fn(self._theta, self._rng), dtype=np.float64
         )
         proposed_theta: ArrayType = untyped_proposed_theta
         lp_proposed_theta = self.model.log_density(proposed_theta)
@@ -130,11 +142,23 @@ class MetropolisHastings(BaseMCMC):
     class Params(BaseMCMC.Params):
         # TODO: let proposal_fn and transition_lp_fn be specified by command-line
         #  arguments by implementing a proposal distribution factory
-        ...
+        prop_seed: Optional[int] = pydantic.Field(description="Random seed for proposal function", default=None)
+
+        @pydantic.validator("prop_seed", pre=True)
+        def seed_to_generator(cls, v):
+            if v is None:
+                return np.random.default_rng()
+            elif isinstance(v, int):
+                return np.random.default_rng(v)
+            elif isinstance(v, (np.random.BitGenerator, np.random.Generator)):
+                return v
+            else:
+                raise ValueError("seed must be None, int, or np.random.Generator")
 
     class State(NamedTuple):
         theta: ArrayType
         rng: tuple
+        prop_rng: tuple
         logp: float
         # TODO - instead of storing names, store the functions themselves
         prop_fn_name: str
@@ -143,6 +167,7 @@ class MetropolisHastings(BaseMCMC):
     def get_state(self) -> State:
         return MetropolisHastings.State(theta=self._theta,
                                         rng=self._rng.bit_generator.state,
+                                        prop_rng=self._prop_rng.bit_generator.state,
                                         logp=self._log_p_theta,
                                         prop_fn_name=self._proposal_fn.__name__,
                                         transition_lp_fn_name=self._transition_lp_fn.__name__)
@@ -150,6 +175,7 @@ class MetropolisHastings(BaseMCMC):
     def set_state(self, state: State):
         self._theta = state.theta
         self._rng.bit_generator.state = state.rng
+        self._prop_rng.bit_generator.state = state.prop_rng
         self._log_p_theta = state.logp
         assert self._proposal_fn.__name__ == state.prop_fn_name, \
             "Mismatch in proposal_fn name between self and state"
@@ -157,7 +183,7 @@ class MetropolisHastings(BaseMCMC):
             "Mismatch in transition_lp_fn name between self and state"
 
     @classmethod
-    def new_from_params(cls, params: BaseMCMC.Params, **kwargs) -> "MetropolisHastings":
+    def new_from_params(cls, params: Params, **kwargs) -> "MetropolisHastings":
         if "proposal_fn" not in kwargs:
             raise ValueError("proposal_fn must be specified")
         if "transition_lp_fn" not in kwargs:
@@ -165,7 +191,8 @@ class MetropolisHastings(BaseMCMC):
         return cls(model=kwargs.pop('model'),
                    proposal_fn=kwargs.pop('proposal_fn'),
                    transition_lp_fn=kwargs.pop('transition_lp_fn'),
-                   seed=params.seed)
+                   seed=params.seed,
+                   prop_seed=params.prop_seed)
 
 
 class Metropolis(MetropolisHastings):
@@ -176,6 +203,7 @@ class Metropolis(MetropolisHastings):
         *,
         init: Optional[ArrayType] = None,
         seed: Optional[SeedType] = None,
+        prop_seed: Optional[SeedType] = None,
     ):
         # This transition function will never be used--it isn't needed for Metropolis,
         # for which the transition probabilities are symmetric. But we need a valid one
@@ -185,7 +213,8 @@ class Metropolis(MetropolisHastings):
                          proposal_fn=proposal_fn,
                          transition_lp_fn=dummy_transition_fn,
                          init=init,
-                         seed=seed)
+                         seed=seed,
+                         prop_seed=prop_seed)
 
     # 'proposal' isn't used, but we need signature consistency to override the parent method
     def _accept_test(self, lp_proposal: float, proposal: ArrayType) -> bool:
