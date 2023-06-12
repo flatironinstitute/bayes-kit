@@ -6,12 +6,13 @@ from .rhat import rhat
 
 # classes
 from .ensemble import Stretcher
-from .algorithms import \
-    HMCDiag, \
-    MALA, \
-    Metropolis, \
-    MetropolisHastings, \
-    TemperedLikelihoodSMC
+from .algorithms import (
+    HMCDiag,
+    MALA,
+    Metropolis,
+    MetropolisHastings,
+    TemperedLikelihoodSMC,
+)
 from .ensemble import Stretcher
 
 __all__ = [

@@ -1,6 +1,7 @@
 from typing import Protocol, Tuple
 from .numeric import ArrayType, ArrayLike
 
+
 class LogDensityModel(Protocol):
     def dims(self) -> int:
         """number of parameters"""
@@ -12,9 +13,7 @@ class LogDensityModel(Protocol):
 
 
 class GradModel(LogDensityModel, Protocol):
-    def log_density_gradient(
-        self, params_unc: ArrayType
-    ) -> Tuple[float, ArrayLike]:
+    def log_density_gradient(self, params_unc: ArrayType) -> Tuple[float, ArrayLike]:
         ...  # pragma: no cover
 
 

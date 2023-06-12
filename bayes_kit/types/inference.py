@@ -17,8 +17,7 @@ class WeightedSamples(NamedTuple):
 
 class DistributionApproximation(Protocol[StepType]):
     def update(self, step: StepType):
-        """Update the approximation state based on the outcome of an inference step.
-        """
+        """Update the approximation state based on the outcome of an inference step."""
         ...
 
     def draw(self, n: int) -> WeightedSamples:
@@ -57,6 +56,7 @@ class InferenceRunner(Protocol[StepType]):
     """A class that implements the InferenceRunner protocol runs a given algorithm
     to construct a given approximation. They must have compatible StepTypes.
     """
+
     algorithm: InferenceAlgorithm[StepType]
     approximation: DistributionApproximation[StepType]
 

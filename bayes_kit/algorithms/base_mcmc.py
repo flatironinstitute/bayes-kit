@@ -10,14 +10,16 @@ from bayes_kit.types import (
     PydanticNDArray,
     SeedType,
     HasState,
-    InitFromParamsABC
+    InitFromParamsABC,
 )
 from typing import Optional
 
 
 class BaseMCMC(InitFromParamsABC, InferenceAlgorithm[ArrayType], HasState):
     class Params(pydantic.BaseModel):
-        seed: Optional[SeedType] = pydantic.Field(description="Random seed", default=None)
+        seed: Optional[SeedType] = pydantic.Field(
+            description="Random seed", default=None
+        )
 
         class Config:
             # Allow arbitrary types for seed
@@ -54,10 +56,11 @@ class BaseMCMC(InitFromParamsABC, InferenceAlgorithm[ArrayType], HasState):
     # Base init handles rng and init size checking
 
     def __init__(
-            self,
-            model: LogDensityModel,
-            init: Optional[ArrayType] = None,
-            seed: SeedType = None):
+        self,
+        model: LogDensityModel,
+        init: Optional[ArrayType] = None,
+        seed: SeedType = None,
+    ):
         self.model = model
         self._dim = self.model.dims()
         self._rng = np.random.default_rng(seed)

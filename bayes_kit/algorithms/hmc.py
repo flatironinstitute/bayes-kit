@@ -31,9 +31,7 @@ class HMCDiag(BaseMCMC):
         adj: float = 0.5 * np.dot(rho, self._metric * rho)
         return self.model.log_density(theta) - adj
 
-    def leapfrog(
-        self, theta: ArrayType, rho: ArrayType
-    ) -> tuple[ArrayType, ArrayType]:
+    def leapfrog(self, theta: ArrayType, rho: ArrayType) -> tuple[ArrayType, ArrayType]:
         # Initialize rho_mid by going backwards half a step so that the first full-step inside the loop brings rho_mid
         # up to +1/2 steps. Note that if self._steps == 0, the loop is skipped and the -0.5 and +0.5 steps cancel.
         lp, grad = self.model.log_density_gradient(theta)
@@ -59,7 +57,9 @@ class HMCDiag(BaseMCMC):
     class Params(BaseMCMC.Params):
         stepsize: float = pydantic.Field(description="Size of each leapfrog step")
         steps: int = pydantic.Field(description="Number of leapfrog steps")
-        metric_diag: Optional[PydanticNDArray] = pydantic.Field(description="Diagonal of metric matrix", default=None)
+        metric_diag: Optional[PydanticNDArray] = pydantic.Field(
+            description="Diagonal of metric matrix", default=None
+        )
 
         @pydantic.validator("stepsize")
         def stepsize_positive(cls, v):
@@ -89,7 +89,8 @@ class HMCDiag(BaseMCMC):
             stepsize=self._stepsize,
             steps=self._steps,
             metric=self._metric,
-            **super().get_state().dict())
+            **super().get_state().dict(),
+        )
 
     def set_state(self, state: pydantic.BaseModel):
         state = HMCDiag.State(**state.dict())

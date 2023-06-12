@@ -93,7 +93,8 @@ class MALA(BaseMCMC):
             epsilon=self._epsilon,
             log_p_theta=self._log_p_theta,
             log_p_grad_theta=self._log_p_grad_theta,
-            **super().get_state().dict())
+            **super().get_state().dict()
+        )
 
     def set_state(self, state: pydantic.BaseModel):
         state = MALA.State(**state.dict())

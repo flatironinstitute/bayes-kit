@@ -1,6 +1,11 @@
 import numpy as np
 import pydantic
-from bayes_kit.types import DistributionApproximation, ArrayType, WeightedSamples, PydanticNDArray
+from bayes_kit.types import (
+    DistributionApproximation,
+    ArrayType,
+    WeightedSamples,
+    PydanticNDArray,
+)
 
 
 class InMemorySamplingApproximation(DistributionApproximation):
@@ -24,7 +29,7 @@ class InMemorySamplingApproximation(DistributionApproximation):
             samples=self.samples.copy(),
             thinning=self.thinning,
             burn_in=self.burn_in,
-            index=self.index
+            index=self.index,
         )
 
     def set_state(self, state: State) -> None:
@@ -41,5 +46,7 @@ class InMemorySamplingApproximation(DistributionApproximation):
 
     def draw(self, n: int) -> WeightedSamples:
         if len(self.samples) < n:
-            raise ValueError(f"Cannot draw {n} samples, only {len(self.samples)} available.")
+            raise ValueError(
+                f"Cannot draw {n} samples, only {len(self.samples)} available."
+            )
         return WeightedSamples(weights=np.ones(n), samples=np.array(self.samples[-n:]))

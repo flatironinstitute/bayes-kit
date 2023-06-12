@@ -10,13 +10,11 @@ class HasState(Protocol):
     """
 
     def get_state(self) -> pydantic.BaseModel:
-        """Get a copy of the current state or parameters.
-        """
+        """Get a copy of the current state or parameters."""
         ...
 
     def set_state(self, state: pydantic.BaseModel) -> None:
-        """Set the state or parameters.
-        """
+        """Set the state or parameters."""
         ...
 
 
@@ -50,8 +48,8 @@ class InitFromParams(Protocol):
         return ""
 
     class Params(pydantic.BaseModel):
-        """Inner class defining parameters available at initialization time.
-        """
+        """Inner class defining parameters available at initialization time."""
+
         pass
 
     # Note that Protocols cannot specify an __init__, so instead we specify a factory
@@ -69,6 +67,7 @@ class InitFromParamsABC(ABC, InitFromParams):
     is to pass all fields of the Params object as keyword arguments to the __init__
     method.
     """
+
     @property
     @abstractmethod
     def short_name(self) -> str:
@@ -80,8 +79,8 @@ class InitFromParamsABC(ABC, InitFromParams):
         return ""
 
     class Params(pydantic.BaseModel):
-        """Inner class defining parameters available at initialization time.
-        """
+        """Inner class defining parameters available at initialization time."""
+
         pass
 
     @classmethod

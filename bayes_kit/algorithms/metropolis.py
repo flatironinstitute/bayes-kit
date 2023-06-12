@@ -79,7 +79,6 @@ def metropolis_hastings_accept_test(
 
 
 class MetropolisHastings(BaseMCMC):
-
     model: LogDensityModel  # Declare the model subtype to make type checkers happy
     short_name = "MetropolisHastings"
     description = "Metropolis Hastings sampler"
@@ -141,7 +140,9 @@ class MetropolisHastings(BaseMCMC):
     class Params(BaseMCMC.Params):
         # TODO: let proposal_fn and transition_lp_fn be specified by command-line
         #  arguments by implementing a proposal distribution factory
-        prop_seed: Optional[int] = pydantic.Field(description="Random seed for proposal function", default=None)
+        prop_seed: Optional[int] = pydantic.Field(
+            description="Random seed for proposal function", default=None
+        )
 
         @pydantic.validator("prop_seed", pre=True)
         def seed_to_generator(cls, v):
@@ -175,10 +176,12 @@ class MetropolisHastings(BaseMCMC):
         super().set_state(state)
         self._prop_rng.bit_generator.state = state.prop_rng
         self._log_p_theta = state.logp
-        assert self._proposal_fn.__name__ == state.prop_fn_name, \
-            "Mismatch in proposal_fn name between self and state"
-        assert self._transition_lp_fn.__name__ == state.transition_lp_fn_name, \
-            "Mismatch in transition_lp_fn name between self and state"
+        assert (
+            self._proposal_fn.__name__ == state.prop_fn_name
+        ), "Mismatch in proposal_fn name between self and state"
+        assert (
+            self._transition_lp_fn.__name__ == state.transition_lp_fn_name
+        ), "Mismatch in transition_lp_fn name between self and state"
 
 
 class Metropolis(MetropolisHastings):
@@ -195,12 +198,14 @@ class Metropolis(MetropolisHastings):
         # for which the transition probabilities are symmetric. But we need a valid one
         # for the superclass' constructor.
         dummy_transition_fn: TransitionLPFn = lambda a, b: 1
-        super().__init__(model,
-                         proposal_fn=proposal_fn,
-                         transition_lp_fn=dummy_transition_fn,
-                         init=init,
-                         seed=seed,
-                         prop_seed=prop_seed)
+        super().__init__(
+            model,
+            proposal_fn=proposal_fn,
+            transition_lp_fn=dummy_transition_fn,
+            init=init,
+            seed=seed,
+            prop_seed=prop_seed,
+        )
 
     # 'proposal' isn't used, but we need signature consistency to override the parent method
     def _accept_test(self, lp_proposal: float, proposal: ArrayType) -> bool:
