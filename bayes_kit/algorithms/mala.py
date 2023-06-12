@@ -84,10 +84,6 @@ class MALA(BaseMCMC):
                 raise ValueError("epsilon must be positive")
             return v
 
-    @classmethod
-    def new_from_params(cls, params: Params, **kwargs) -> "MALA":
-        return cls(model=kwargs.pop('model'), epsilon=params.epsilon, **kwargs)
-
     class State(BaseMCMC.State):
         epsilon: float
         log_p_theta: float

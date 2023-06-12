@@ -180,18 +180,6 @@ class MetropolisHastings(BaseMCMC):
         assert self._transition_lp_fn.__name__ == state.transition_lp_fn_name, \
             "Mismatch in transition_lp_fn name between self and state"
 
-    @classmethod
-    def new_from_params(cls, params: Params, **kwargs) -> "MetropolisHastings":
-        if "proposal_fn" not in kwargs:
-            raise ValueError("proposal_fn must be specified")
-        if "transition_lp_fn" not in kwargs:
-            raise ValueError("transition_lp_fn must be specified")
-        return cls(model=kwargs.pop('model'),
-                   proposal_fn=kwargs.pop('proposal_fn'),
-                   transition_lp_fn=kwargs.pop('transition_lp_fn'),
-                   seed=params.seed,
-                   prop_seed=params.prop_seed)
-
 
 class Metropolis(MetropolisHastings):
     def __init__(

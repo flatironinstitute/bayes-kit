@@ -17,6 +17,7 @@ from .inference import (
 from .interface import (
     HasState,
     InitFromParams,
+    InitFromParamsABC,
 )
 
 from .models import (

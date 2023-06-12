@@ -79,14 +79,6 @@ class HMCDiag(BaseMCMC):
                 raise ValueError("metric_diag must be positive")
             return v
 
-    @classmethod
-    def new_from_params(cls, params: Params, **kwargs) -> "HMCDiag":
-        return cls(model=kwargs.pop('model'),
-                   stepsize=params.stepsize,
-                   steps=params.steps,
-                   metric_diag=params.metric_diag,
-                   seed=params.seed)
-
     class State(BaseMCMC.State):
         stepsize: float
         steps: int

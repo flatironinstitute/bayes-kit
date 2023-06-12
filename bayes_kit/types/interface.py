@@ -1,5 +1,7 @@
 import pydantic
 from typing import Protocol
+from abc import ABC, abstractmethod
+import inspect
 
 
 class HasState(Protocol):
@@ -62,7 +64,47 @@ class InitFromParams(Protocol):
         ...
 
 
+class InitFromParamsABC(ABC, InitFromParams):
+    """A convenience class that implements default behavior for new_from_params, which
+    is to pass all fields of the Params object as keyword arguments to the __init__
+    method.
+    """
+    @property
+    @abstractmethod
+    def short_name(self) -> str:
+        return ""
+
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        return ""
+
+    class Params(pydantic.BaseModel):
+        """Inner class defining parameters available at initialization time.
+        """
+        pass
+
+    @classmethod
+    def new_from_params(cls, params: pydantic.BaseModel, **kwargs):
+        # Give a useful error message here if names of fields in the Params object do
+        # not match the names of arguments in the __init__ method.
+        params_fields = set(params.__fields__.keys())
+        init_argnames = set(inspect.signature(cls.__init__).parameters.keys())
+        if not params_fields <= init_argnames:
+            class_name = params.__class__.__name__
+            raise ValueError(
+                f"By default, new_from_params expects the Params class to have fields "
+                f"with the same names as the arguments to the __init__ method, but the"
+                f" following fields are missing: {init_argnames - params_fields}. "
+                f"Either edit the fields of {class_name} or override new_from_params in "
+                f"the subclass!"
+            )
+        kwargs.update(params.dict())
+        return cls(**kwargs)
+
+
 __all__ = [
     "HasState",
     "InitFromParams",
+    "InitFromParamsABC",
 ]

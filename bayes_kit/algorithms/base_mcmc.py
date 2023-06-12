@@ -10,24 +10,18 @@ from bayes_kit.types import (
     PydanticNDArray,
     SeedType,
     HasState,
-    InitFromParams
+    InitFromParamsABC
 )
 from typing import Optional
 
 
-class BaseMCMC(ABC, InferenceAlgorithm[ArrayType], InitFromParams, HasState):
-    @property
-    @abstractmethod
-    def short_name(self) -> str:
-        ...
-
-    @property
-    @abstractmethod
-    def description(self) -> str:
-        ...
-
+class BaseMCMC(InitFromParamsABC, InferenceAlgorithm[ArrayType], HasState):
     class Params(pydantic.BaseModel):
-        seed: Optional[int] = pydantic.Field(description="Random seed", default=None)
+        seed: Optional[SeedType] = pydantic.Field(description="Random seed", default=None)
+
+        class Config:
+            # Allow arbitrary types for seed
+            arbitrary_types_allowed = True
 
         @pydantic.validator("seed", pre=True)
         def seed_to_generator(cls, v):
@@ -39,11 +33,6 @@ class BaseMCMC(ABC, InferenceAlgorithm[ArrayType], InitFromParams, HasState):
                 return v
             else:
                 raise ValueError("seed must be None, int, or np.random.Generator")
-
-    @classmethod
-    @abstractmethod
-    def new_from_params(cls, params: Params, **kwargs) -> "BaseMCMC":
-        ...
 
     # Ensure that subclasses implement the HasState Protocol
 
