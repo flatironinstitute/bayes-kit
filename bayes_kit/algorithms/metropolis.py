@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Optional, Callable
+from typing import Optional, Callable, NamedTuple
 
 from bayes_kit.protocols import ArrayType, SeedType
 from bayes_kit.model_types import LogDensityModel
@@ -132,24 +132,29 @@ class MetropolisHastings(BaseMCMC):
         #  arguments by implementing a proposal distribution factory
         ...
 
-    class State(BaseMCMC.State):
+    class State(NamedTuple):
+        theta: ArrayType
+        rng: tuple
         logp: float
-        prop_fn: ProposalFn
-        transition_lp_fn: TransitionLPFn
+        # TODO - instead of storing names, store the functions themselves
+        prop_fn_name: str
+        transition_lp_fn_name: str
 
     def get_state(self) -> State:
         return MetropolisHastings.State(theta=self._theta,
-                                        rng=self._rng,
+                                        rng=self._rng.bit_generator.state,
                                         logp=self._log_p_theta,
-                                        prop_fn=self._proposal_fn,
-                                        transition_lp_fn=self._transition_lp_fn)
+                                        prop_fn_name=self._proposal_fn.__name__,
+                                        transition_lp_fn_name=self._transition_lp_fn.__name__)
 
     def set_state(self, state: State):
         self._theta = state.theta
-        self._rng = state.rng
+        self._rng.bit_generator.state = state.rng
         self._log_p_theta = state.logp
-        self._proposal_fn = state.prop_fn
-        self._transition_lp_fn = state.transition_lp_fn
+        assert self._proposal_fn.__name__ == state.prop_fn_name, \
+            "Mismatch in proposal_fn name between self and state"
+        assert self._transition_lp_fn.__name__ == state.transition_lp_fn_name, \
+            "Mismatch in transition_lp_fn name between self and state"
 
     @classmethod
     def new_from_params(cls, params: BaseMCMC.Params, **kwargs) -> "MetropolisHastings":

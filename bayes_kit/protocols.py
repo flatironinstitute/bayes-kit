@@ -20,21 +20,16 @@ class WeightedSamples(NamedTuple):
 
 
 class HasState(Protocol):
-    """A class that implements the HasState protocol must declare its state type as an
-    inner class called State, and must implement get_state() and set_state() methods.
+    """A class that implements the HasState protocol must be able to serialize its
+    state into a tuple (or namedtuple) using get_state and deserialize using set_state
     """
-    class State(NamedTuple):
-        """The state is defined on a per-subclass basis, but it must be sufficient to
-        restore the approximation from a saved state using set_state() and get_state().
-        """
-        pass
 
-    def get_state(self) -> State:
+    def get_state(self) -> tuple:
         """Get a copy of the current state or parameters.
         """
         ...
 
-    def set_state(self, state: State) -> None:
+    def set_state(self, state: tuple) -> None:
         """Set the state or parameters.
         """
         ...

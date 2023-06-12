@@ -91,7 +91,7 @@ class MALA(BaseMCMC):
 
     class State(NamedTuple):
         theta: ArrayType
-        rng: np.random.Generator
+        rng: tuple
         epsilon: float
         log_p_theta: float
         log_p_grad_theta: ArrayType
@@ -99,7 +99,7 @@ class MALA(BaseMCMC):
     def get_state(self) -> State:
         return self.State(
             theta=self._theta,
-            rng=self._rng,
+            rng=self._rng.bit_generator.state,
             epsilon=self._epsilon,
             log_p_theta=self._log_p_theta,
             log_p_grad_theta=self._log_p_grad_theta,
@@ -107,7 +107,7 @@ class MALA(BaseMCMC):
 
     def set_state(self, state: State):
         self._theta = state.theta
-        self._rng = state.rng
+        self._rng.bit_generator.state = state.rng
         self._epsilon = state.epsilon
         self._log_p_theta = state.log_p_theta
         self._log_p_grad_theta = state.log_p_grad_theta

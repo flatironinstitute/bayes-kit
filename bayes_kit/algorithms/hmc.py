@@ -90,7 +90,7 @@ class HMCDiag(BaseMCMC):
 
     class State(NamedTuple):
         theta: ArrayType
-        rng: np.random.Generator
+        rng: tuple
         stepsize: float
         steps: int
         metric: ArrayType
@@ -98,14 +98,14 @@ class HMCDiag(BaseMCMC):
     def get_state(self) -> State:
         return HMCDiag.State(
             theta=self._theta,
-            rng=self._rng,
+            rng=self._rng.bit_generator.state,
             stepsize=self._stepsize,
             steps=self._steps,
             metric=self._metric)
 
     def set_state(self, state: State):
         self._theta = state.theta
+        self._rng.bit_generator.state = state.rng
         self._stepsize = state.stepsize
         self._steps = state.steps
         self._metric = state.metric
-        self._rng = state.rng
