@@ -1,7 +1,7 @@
 import numpy as np
 import pydantic
 from pydantic_numpy import NDArray as PydanticNDArray
-from typing import Optional, NamedTuple
+from typing import Optional
 
 from bayes_kit.types import GradModel, ArrayType, SeedType
 from .base_mcmc import BaseMCMC

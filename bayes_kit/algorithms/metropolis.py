@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Optional, Callable, NamedTuple
+from typing import Optional, Callable
 from copy import deepcopy
 import pydantic
 

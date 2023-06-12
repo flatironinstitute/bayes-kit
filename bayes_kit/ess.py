@@ -1,14 +1,8 @@
-import numpy as np
-import numpy.typing as npt
-import bayes_kit.autocorr as autocorr
+from bayes_kit.types import ArrayType
 from bayes_kit.iat import iat, iat_ipse, iat_imse
 
-FloatType = np.float64
-IntType = np.int64
-VectorType = npt.NDArray[FloatType]
 
-
-def ess_ipse(chain: VectorType) -> FloatType:
+def ess_ipse(chain: ArrayType) -> float:
     """
     Return an estimate of the effective sample size (ESS) of the specified Markov chain
     using the initial positive sequence estimator (IPSE).
@@ -27,7 +21,7 @@ def ess_ipse(chain: VectorType) -> FloatType:
     return len(chain) / iat_ipse(chain)
 
 
-def ess_imse(chain: VectorType) -> FloatType:
+def ess_imse(chain: ArrayType) -> float:
     """
     Return an estimate of the effective sample size (ESS) of the specified Markov chain
     using the initial monotone sequence estimator (IMSE).  This is the most accurate
@@ -55,7 +49,7 @@ def ess_imse(chain: VectorType) -> FloatType:
     return len(chain) / iat_imse(chain)
 
 
-def ess(chain: VectorType) -> FloatType:
+def ess(chain: ArrayType) -> float:
     """
     Return an estimate of the effective sample size of the specified Markov chain
     using the default ESS estimator (currently IMSE).  Evaluated by delegating

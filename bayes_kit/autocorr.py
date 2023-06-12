@@ -1,10 +1,8 @@
 import numpy as np
-import numpy.typing as npt
+from bayes_kit.types import ArrayType
 
-FloatType = np.float64
-VectorType = npt.NDArray[FloatType]
 
-def autocorr(chain: VectorType) -> VectorType:
+def autocorr(chain: ArrayType) -> ArrayType:
     """Return sample autocorrelations at all lags from 0 to the length
     of the sequence minus 1 for the specified sequence.  The returned
     vector will thus be the same size as the input vector.

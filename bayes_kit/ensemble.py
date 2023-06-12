@@ -1,8 +1,7 @@
-from typing import Callable, Optional, Tuple
-from numpy.typing import NDArray
 import numpy as np
 
-from bayes_kit.types import LogDensityModel
+from bayes_kit.types import LogDensityModel, ArrayType
+from typing import Optional
 
 class Stretcher:
     """
@@ -16,7 +15,7 @@ class Stretcher:
     #         model: LogDensityModel,
     #         a: Optional[float] = None,
     #         walkers: Optional[int] = None
-    #         init: Optional[NDarray[np.float64]] = None)
+    #         init: Optional[ArrayType] = None)
     #     ):
     #     self._model = model
     #     self._dim = self._model.dims()
@@ -46,7 +45,7 @@ class Stretcher:
     #     """Return random draw z in (1/a, a) with p(z) propto 1 / sqrt(z)"""
     #     return np.square(np.random.uniform(self._inv_sqrt_a, self._sqrt_a))
 
-    # def stretch_move(self, theta_k: NDarray[np.float64], theta_j: NDarray[np.float64]):
+    # def stretch_move(self, theta_k: ArrayType, theta_j: ArrayType):
     #     z = self.draw_z()
     #     theta_star = theta_j + z * (theta_k - theta_j)  # (1 - z) * theta_j + z * theta_k
     #     log_q = (self._dims - 1) * np.log(z) + self._model.log_density(theta_star) - self._model.log_density(theta_k)
@@ -54,7 +53,7 @@ class Stretcher:
     #         return theta_star
     #     return theta_k
 
-    # def sample(self) -> NDarray[np.float64]
+    # def sample(self) -> ArrayType
     #     js = np.random.choice(secondhalf, size=self._halfwalkers)
     #     for k in firsthalf:
     #         self._thetas[k] = stretch_move(self._thetas[k], self._thetas[js[k]])

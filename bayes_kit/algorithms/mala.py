@@ -5,9 +5,8 @@ from typing import Optional, Callable
 from bayes_kit.types import GradModel, ArrayType, SeedType, PydanticNDArray
 from .base_mcmc import BaseMCMC
 
-Vector = ArrayType
-ProposalFn = Callable[[Vector], Vector]
-TransitionLPFn = Callable[[Vector, Vector], float]
+ProposalFn = Callable[[ArrayType], ArrayType]
+TransitionLPFn = Callable[[ArrayType, ArrayType], float]
 from .metropolis import metropolis_hastings_accept_test
 
 # Note: MALA is an instance of a Metropolis-Hastings algorithm, but we do not

@@ -1,12 +1,8 @@
 import numpy as np
-from numpy.typing import NDArray, ArrayLike
-
-FloatType = np.float64
-VectorType = NDArray[FloatType]
-SeqType = ArrayLike
+from bayes_kit.types import ArrayLike
 
 
-def rhat(chains: list[SeqType]) -> FloatType:
+def rhat(chains: list[ArrayLike]) -> float:
     """
     Return the potential scale reduction factor (R-hat) for a list of Markov chains.
 

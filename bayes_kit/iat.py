@@ -1,13 +1,8 @@
-import numpy as np
-import numpy.typing as npt
+from bayes_kit.types import ArrayType
 import bayes_kit.autocorr as autocorr
 
-FloatType = np.float64
-IntType = np.int64
-VectorType = npt.NDArray[FloatType]
 
-
-def _end_pos_pairs(acor: VectorType) -> IntType:
+def _end_pos_pairs(acor: ArrayType) -> int:
     """
     Return the index 1 past the last positive pair of autocorrelations
     starting on an even index.  The sequence `acor` should contain
@@ -46,7 +41,7 @@ def _end_pos_pairs(acor: VectorType) -> IntType:
     return n
 
 
-def iat_ipse(chain: VectorType) -> FloatType:
+def iat_ipse(chain: ArrayType) -> float:
     """
     Return an estimate of the integrated autocorrelation time (IAT)
     of the specified Markov chain using the initial positive sequence
@@ -94,7 +89,7 @@ def iat_ipse(chain: VectorType) -> FloatType:
     return 2 * acor[0:n].sum() - 1
 
 
-def iat_imse(chain: VectorType) -> FloatType:
+def iat_imse(chain: ArrayType) -> float:
     """
     Return an estimate of the integrated autocorrelation time (IAT)
     of the specified Markov chain using the initial monotone sequence
@@ -137,7 +132,7 @@ def iat_imse(chain: VectorType) -> FloatType:
     return 2 * acor_sum - 1
 
 
-def iat(chain: VectorType) -> FloatType:
+def iat(chain: ArrayType) -> float:
     """
     Return an estimate of the integrated autocorrelation time (IAT)
     of the specified Markov chain. Evaluated by delegating to the
