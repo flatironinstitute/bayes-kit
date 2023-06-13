@@ -52,7 +52,7 @@ def metropolis_hastings_accept_test(
 
     The Metropolis-Hastings acceptance condition modifies the Metropolis condition to accommodate
     asymmetric proposal functions (i.e. where the probability of proposing theta-star, when starting from
-    theta, is not equal to the probability of proposing theta when starting from theta-star.)
+    theta, is not equal to the probability of proposing theta when starting from theta-star).
     This is achieved by reweighting the likelihood ratio of the states:
         Pr(proposal) / Pr(current)
     by the relative likelihood of transitioning between them:
