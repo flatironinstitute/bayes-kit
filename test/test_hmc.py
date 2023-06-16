@@ -33,16 +33,13 @@ def test_hmc_leapfrog_num_evals(steps) -> None:
 
 
 def test_hmc_diag_std_normal() -> None:
+    model = StdNormal()
     # init with draw from posterior
     init = np.random.normal(loc=0, scale=1, size=[1])
-    model = StdNormal()
     hmc = HMCDiag(model, steps=10, stepsize=0.25, init=init)
 
     M = 10000
-    #draws = np.array([hmc.sample()[0] for _ in range(M)])
-    draws = np.zeros(M)
-    for i in range(M):
-        draws[i] = hmc.sample()[0]
+    draws = np.array([hmc.sample()[0] for _ in range(M)])
 
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
@@ -52,8 +49,8 @@ def test_hmc_diag_std_normal() -> None:
 
 
 def test_hmc_diag_repr() -> None:
-    init = np.random.normal(loc=0, scale=1, size=[1])
     model = StdNormal()
+    init = np.random.normal(loc=0, scale=1, size=[1])
 
     hmc_1 = HMCDiag(model, steps=10, stepsize=0.25, init=init, seed=123)
     hmc_2 = HMCDiag(model, steps=10, stepsize=0.25, init=init, seed=123)
@@ -67,16 +64,11 @@ def test_hmc_diag_repr() -> None:
 
 def test_hmc_binom() -> None:
     model = Binomial(alpha=2, beta=3, x=5, N=15)
+    init = np.array([model.initial_state(0)])
     M = 800
-    hmc = HMCDiag(
-        model, stepsize=0.08, steps=3, init=np.array([model.initial_state(0)])
-    )
+    hmc = HMCDiag(model, stepsize=0.08, steps=3, init=init)
 
-    #draws = model.constrain_draws(np.array([hmc.sample()[0] for _ in range(M)]))
-    draws = np.zeros(M)
-    for i in range(M):
-        draws[i] = hmc.sample()[0]
-    draws = model.constrain_draws(draws)
+    draws = model.constrain_draws(np.array([hmc.sample()[0] for _ in range(M)]))
 
     # skip 100 draws as a "burn-in" to try to make estimates less noisy
     mean = draws[100:].mean(axis=0)

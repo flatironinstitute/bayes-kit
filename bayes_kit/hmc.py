@@ -36,12 +36,13 @@ class HMCDiag:
         return self.sample()
 
     def joint_logp(self, theta: NDArray[np.float64], rho: NDArray[np.float64]) -> float:
-        adj: float = - 0.5 * np.dot(rho, self._metric * rho)
-        return self._model.log_density(theta) + adj 
+        adj: float = -0.5 * np.dot(rho, self._metric * rho)
+        return self._model.log_density(theta) + adj
 
     def leapfrog(
         self, theta: NDArray[np.float64], rho: NDArray[np.float64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        theta = np.array(theta, copy=True)
         _, grad = self._model.log_density_gradient(theta)
         rho_mid = rho - 0.5 * self._stepsize * np.multiply(self._metric, grad)
         for n in range(self._steps):
