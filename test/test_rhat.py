@@ -1,5 +1,5 @@
 import numpy as np
-from bayes_kit.rhat import rhat
+from bayes_kit.rhat import rhat, split_chains, split_rhat
 import pytest as pt
 
 
@@ -30,14 +30,33 @@ def test_rhat_ragged():
     chain2 = [0.99, 1.00, 1.01, 1.15, 0.83, 0.95]
     chains = [chain1, chain2]
     rhat_est = rhat(chains)
-    np.testing.assert_allclose(rhat_expected(chains), rhat(chains), atol=0.1, rtol=0.2)
+    np.testing.assert_allclose(rhat_expected(chains), rhat(chains),
+                                   atol=0.1, rtol=0.2)
 
+def test_rhat_size_exceptions():
+    bad1 = []
+    bad2 = [[1.01, 1.2, 1.3, 1.4]],
+    bad3 = [[1, 2, 3], [4]]
+    for chains in [bad1, bad2, bad3]:
+        with pt.raises(ValueError):
+            rhat(chains)
 
-def test_rhat_exceptions():
-    with pt.raises(ValueError):
-        chains = []
-        rhat(chains)
-    with pt.raises(ValueError):
-        chain1 = [1.01, 1.2, 1.3, 1.4]
-        chains = [chain1]
-        rhat(chains)
+def test_split_chains():
+    print("hello")
+    np.testing.assert_equal([], split_chains([]))
+    np.testing.assert_equal([[1], []], split_chains([[1]]))
+    np.testing.assert_equal([[1], [2]], split_chains([[1, 2]]))
+    np.testing.assert_equal([[1, 2], [3]], split_chains([[1, 2, 3]]))
+    np.testing.assert_equal([[1, 2, 3], [4, 5, 6]],
+                                split_chains([[1, 2, 3, 4, 5, 6]]))
+    np.testing.assert_equal([[1, 2], [3], [4, 5], [6, 7]],
+                                split_chains([[1, 2, 3], [4, 5, 6, 7]]))
+
+def test_split_rhat():
+    np.testing.assert_allclose(rhat([[1, 2], [3, 4]]),
+                                   split_rhat([[1, 2, 3, 4]]))
+    np.testing.assert_allclose(rhat([[1, 2, 2], [3, 4, 3]]),
+                                   split_rhat([[1, 2, 2, 3, 4, 3]]))
+    np.testing.assert_allclose(rhat([[1, -2, 3], [4, 5, 6], [7, 8], [9, 12]]),
+                                   split_rhat([[1, -2, 3, 4, 5, 6], [7, 8, 9, 12]]))
+                            
