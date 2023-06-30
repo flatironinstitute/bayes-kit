@@ -1,6 +1,7 @@
 from typing import Callable, Iterator, Optional, Union
-from numpy.typing import NDArray, ArrayLike
+
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from .model_types import LogDensityModel
 

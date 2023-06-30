@@ -1,13 +1,16 @@
+from typing import List, Sequence, Union
+
 import numpy as np
-from typing import Union, Sequence
+from typing import Union, Sequence, List
 from numpy.typing import NDArray
 import scipy as sp
 
 FloatType = np.float64
 VectorType = NDArray[FloatType]
-SeqType = Union[Sequence[float], NDArray[np.float64]]
+SeqType = Union[Sequence[float], VectorType]
 
-def split_chains(chains: list[SeqType]) -> list[SeqType]:
+
+def split_chains(chains: Sequence[SeqType]) -> List[SeqType]:
     """Return a list of the input chains split in half.  The result will
     be a list twice as long as the input.  For odd sized chains, the
     first half will be one element longer.  For example,
@@ -24,7 +27,8 @@ def split_chains(chains: list[SeqType]) -> list[SeqType]:
     """
     return [arr for chain in chains for arr in np.array_split(chain, 2)]
 
-def rank_chains(chains: list[SeqType]) -> list[SeqType]:
+
+def rank_chains(chains: Sequence[SeqType]) -> List[VectorType]:
     """
     Returns a copy of the included Markov chains with all values
     transformed to ranks.  Ranks are ascending and start at 1.
@@ -47,9 +51,9 @@ def rank_chains(chains: list[SeqType]) -> list[SeqType]:
     List of chains with values replaced by transformed ranks.
     """
     if len(chains) == 0:
-        return chains
+        return chains # type: ignore
     flattened = np.concatenate(chains)
-    ranks = flattened.argsort().argsort() + 1
+    ranks = (flattened.argsort().argsort() + 1).astype(np.float64)
     reshaped_arrays = []
     current_index = 0
     for array in chains:
@@ -58,7 +62,8 @@ def rank_chains(chains: list[SeqType]) -> list[SeqType]:
         current_index += size
     return reshaped_arrays
 
-def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
+
+def rank_normalize_chains(chains: Sequence[SeqType]) -> List[List[float]]:
     """Return the rank-normalized version of the input chains.
 
     Rank normalization maps the ranks to the range (0, 1) and then returns
@@ -70,11 +75,11 @@ def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
     ```
     inv_Phi((rank[i][j] - 3/8) / (size(chains) - 1/4),
     ```
-    where 
+    where
     * `inv_Phi` is the inverse cumulative distribution function for
     the standard normal distribution,
     * `rank[i][j] = rank_chains(chains)[i][j]` is the rank of element
-    `i` in chain `j`, and 
+    `i` in chain `j`, and
     * `size(chains)` is the total number of elements in the chains.
 
     For a specification of ranking, see :func:`rank_chains`.
@@ -101,10 +106,13 @@ def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
     S = sum([len(chain) for chain in chains])
     result = []
     for chain_i in rank_chains(chains):
-        result.append([sp.stats.norm.ppf((rank_ij - 0.325) / (S - 0.25)) for rank_ij in chain_i])
+        result.append(
+            [sp.stats.norm.ppf((rank_ij - 0.325) / (S - 0.25)) for rank_ij in chain_i]
+        )
     return result
 
-def rhat(chains: list[SeqType]) -> FloatType:
+
+def rhat(chains: Sequence[SeqType]) -> FloatType:
     """Return the potential scale reduction factor (R-hat) for a list of
     Markov chains.
 
@@ -166,7 +174,8 @@ def rhat(chains: list[SeqType]) -> FloatType:
     )
     return r_hat
 
-def split_rhat(chains: list[SeqType]) -> FloatType:
+
+def split_rhat(chains: Sequence[SeqType]) -> FloatType:
     """Return the potential scale reduction factor (R-hat) for a list of
     Markov chains consisting of each of the input chains split in half.
 
@@ -196,7 +205,8 @@ def split_rhat(chains: list[SeqType]) -> FloatType:
     """
     return rhat(split_chains(chains))
 
-def rank_normalized_rhat(chains: list[SeqType]) -> FloatType:
+
+def rank_normalized_rhat(chains: Sequence[SeqType]) -> FloatType:
     """Return the rank-normalized R-hat for the specified chains.
     Rank normalized r-hat replaces each value in the chains with its
     rank, applies a shifted inverse standard normal cdf, and

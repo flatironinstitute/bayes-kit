@@ -1,6 +1,8 @@
 from typing import Callable, Iterator
+
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+
 from bayes_kit.model_types import LogPriorLikelihoodModel
 
 Vector = NDArray[np.float64]
