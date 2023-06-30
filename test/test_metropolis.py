@@ -1,18 +1,19 @@
-from typing import Callable
-from test.models.std_normal import StdNormal
 from test.models.binomial import Binomial
 from test.models.skew_normal import SkewNormal
+from test.models.std_normal import StdNormal
+from typing import Callable
+from unittest.mock import Mock
+
+import numpy as np
+import scipy.stats as sst
+from numpy.typing import NDArray
+
 from bayes_kit.metropolis import (
     Metropolis,
     MetropolisHastings,
     metropolis_accept_test,
     metropolis_hastings_accept_test,
 )
-from unittest.mock import Mock
-
-import numpy as np
-import scipy.stats as sst
-from numpy.typing import NDArray
 
 
 def test_metropolis_accept_test_accepts_more_likely_proposal() -> None:
@@ -50,7 +51,9 @@ def test_metropolis_accept_test_accepts_when_proposal_above_uniform_draw() -> No
     assert metropolis_accept_test(lp_proposal, lp_current, mock_random)
 
 
-def test_metropolis_hastings_accept_test_accepts_more_likely_proposal_given_transition_ratio() -> None:
+def test_metropolis_hastings_accept_test_accepts_more_likely_proposal_given_transition_ratio() -> (
+    None
+):
     mock_random = Mock()
     mock_random.uniform = Mock(return_value=0.5)
     pr_proposal = 0.4
@@ -81,7 +84,9 @@ def test_metropolis_hastings_accept_test_accepts_more_likely_proposal_given_tran
     )
 
 
-def test_metropolis_hastings_accept_test_reduces_to_metropolis_given_equal_transition_likelihoods() -> None:
+def test_metropolis_hastings_accept_test_reduces_to_metropolis_given_equal_transition_likelihoods() -> (
+    None
+):
     M = 1000
     mock_uniform = Mock()
     for _ in range(M):

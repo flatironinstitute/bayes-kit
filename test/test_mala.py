@@ -1,7 +1,9 @@
 from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
-from bayes_kit.mala import MALA
+
 import numpy as np
+
+from bayes_kit.mala import MALA
 
 
 def test_mala_std_normal() -> None:

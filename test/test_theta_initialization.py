@@ -1,6 +1,7 @@
+from unittest.mock import Mock
+
 import numpy as np
 from numpy.typing import NDArray
-from unittest.mock import Mock
 
 from bayes_kit.hmc import HMCDiag
 from bayes_kit.mala import MALA

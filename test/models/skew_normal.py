@@ -1,9 +1,10 @@
-import numpy.typing as npt
-import numpy as np
-from scipy import stats as sst
 from typing import Optional, Union
-from numpy.typing import NDArray
+
+import numpy as np
+import numpy.typing as npt
 from numpy import float64
+from numpy.typing import NDArray
+from scipy import stats as sst
 
 
 class SkewNormal:

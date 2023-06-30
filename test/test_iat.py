@@ -1,6 +1,7 @@
 import numpy as np
-import bayes_kit as bk
 import pytest as pt
+
+import bayes_kit as bk
 from bayes_kit.iat import _end_pos_pairs
 
 

@@ -1,10 +1,12 @@
 """Test different algorithms with known equivalencies against each other"""
 
-from test.models.std_normal import StdNormal
 from test.models.skew_normal import SkewNormal
-from bayes_kit import MALA, HMCDiag, Metropolis, MetropolisHastings
+from test.models.std_normal import StdNormal
+
 import numpy as np
 import scipy.stats as sst
+
+from bayes_kit import MALA, HMCDiag, Metropolis, MetropolisHastings
 
 
 def test_hmc_mala_agreement() -> None:

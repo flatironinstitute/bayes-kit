@@ -19,7 +19,6 @@ class TemperedLikelihoodSMC:
         sample_initial: Callable[[int], ArrayLike],
         kernel: Kernel,
     ) -> None:
-
         self.M = M
         self.N = N
         self.thetas = np.array(list(map(sample_initial, range(M))))

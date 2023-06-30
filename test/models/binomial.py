@@ -1,8 +1,10 @@
 from typing import Union
-from scipy import stats as sst
-from scipy.special import logit, expit as inv_logit, log1p
+
 import numpy as np
 import numpy.typing as npt
+from scipy import stats as sst
+from scipy.special import expit as inv_logit
+from scipy.special import log1p, logit
 
 
 class Binomial:

@@ -51,7 +51,7 @@ def rank_chains(chains: Sequence[SeqType]) -> List[VectorType]:
     List of chains with values replaced by transformed ranks.
     """
     if len(chains) == 0:
-        return chains # type: ignore
+        return chains  # type: ignore
     flattened = np.concatenate(chains)
     ranks = (flattened.argsort().argsort() + 1).astype(np.float64)
     reshaped_arrays = []
