@@ -1,10 +1,14 @@
 import numpy as np
-import bayes_kit as bk
 import pytest as pt
-from .test_iat import sample_ar1, integrated_autocorr_time_ar1
+
+import bayes_kit as bk
+
+from .test_iat import integrated_autocorr_time_ar1, sample_ar1
+
 
 def expected_ess_ar1(rho, N):
     return N / integrated_autocorr_time_ar1(rho)
+
 
 def run_ess_test_ar1(rho, N):
     v = sample_ar1(rho, N)
@@ -43,4 +47,3 @@ def test_ess_exceptions():
             bk.ess_imse(v)
         with pt.raises(ValueError):
             bk.ess_ipse(v)
-

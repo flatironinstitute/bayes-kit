@@ -1,9 +1,11 @@
+import functools
 from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
-from bayes_kit.hmc import HMCDiag
+
 import numpy as np
-import functools
 import pytest
+
+from bayes_kit.hmc import HMCDiag
 
 
 def _call_counter(f):
