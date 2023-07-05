@@ -2,104 +2,66 @@ from typing import Iterator, Optional, Union, Callable
 from numpy.typing import NDArray
 import numpy as np
 
-from numpy.linalg import norm
 from .model_types import GradModel
 
 Draw = tuple[NDArray[np.float64], float]
 
 
-def validate_stepsize(stepsize: float) -> None:
-    """Ensure that leapfrog stepsize is positive.
+class PdrHmcDiag:
+    """Probabilistic Delayed Rejection Hamiltonian Monte Carlo diagonal-metric sampler.
 
-    Args:
-        stepsize: stepsize in each leapfrog step
-
-    Raises:
-        ValueError: stepsize is not positive
-    """
-    try:
-        assert stepsize > 0
-    except:
-        raise ValueError("stepsize must be positive")
-
-
-def validate_steps(steps: int) -> None:
-    """Ensure that number of leapfrog steps is positive and an integer.
-
-    Args:
-        steps: number of steps to run the leapfrog integrator
-
-    Raises:
-        ValueError: steps is not positive
-        TypeError: steps is not an integer
-    """
-    try:
-        assert steps > 0
-    except:
-        raise ValueError("steps must be positive")
-    try:
-        assert steps == int(steps)
-    except:
-        raise TypeError("steps must be an integer")
-
-
-class DrHmcDiag:
-    """Delayed Rejection Hamiltonian Monte Carlo sampler with diagonal metric.
-
-    To sample from a target distribution, DrHmcDiag proposes a new sample from the
+    To sample from a target distribution, PdrHmcDiag proposes a new sample from the
     current sample using a leapfrog integrator. The probability of accepting this
-    transition is recursively computed. If accepted, DrHmcDiag returns the proposed
-    sample and its log density. If rejected, DrHmcDiag proposes a new sample generated
+    transition is recursively computed. If accepted, PdrHmcDiag returns the proposed
+    sample and its log density. If rejected, PdrHmcDiag proposes a new sample generated
     with a smaller step size for the leapfrog integrator. This process is repeated
     until a maximum number of proposals is reached or probabilistic delayed rejection
     determines not to propose a new sample.
-
-    Implementation of DrHmcDiag is based on 'Delayed rejection Hamiltonian Monte Carlo
-    for sampling multiscale distirbutions' by Chirag et al. While the paper represents
-    position and momentum with (p, q), this implementation uses (theta, rho) for
-    consistency with bayes-kit.
 
     Probabilistic delayed rejection proposes a new sample with some probability
     dependent on where we are in the distribution. If a proposal has low acceptance
     probability and was rejected, propose another sample; if a proposal has high
     acceptance probablity but was rejected by chance, do not propose another
     sample. More details found in section 3.2 of Chirag et al.
+
+    Implementation of PdrHmcDiag is based on: Modi, Chirag, Alex Barnett, and Bob
+    Carpenter. "Delayed rejection Hamiltonian Monte Carlo for sampling multiscale
+    distributions." Bayesian Analysis 1.1 (2023): 1-28. While the paper represents
+    position and momentum with (p, q), this implementation uses (theta, rho) for
+    consistency with bayes-kit. All computations are done on the log scale.
     """
 
     def __init__(
         self,
         model: GradModel,
-        stepsize: Union[float, Callable[[int], float]],
-        steps: Union[float, Callable[[int], int]],
-        num_proposals: int = 2,
+        num_proposals: int = 3,
+        probabilistic: bool = True,
+        stepsize: Optional[
+            Union[int | float, list[int | float], Callable[[int], int | float]]
+        ] = None,
+        steps: Optional[Union[int, list[int], Callable[[int], int]]] = None,
         metric_diag: Optional[NDArray[np.float64]] = None,
         init: Optional[NDArray[np.float64]] = None,
         seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
     ):
-        """Initialize the DrHmcDiag sampler.
-
-        The stepsize argument can be a float, for a fixed stepsize, or a function, for 
-        a stepsize that depends on the proposal number. The stepsize must be positive.
-        
-        The steps argument can be an integer, for a fixed number of steps, or a 
-        function, for a number of steps that depends on the proposal number. The number
-        of steps must be positive and an integer.
+        """Initialize the PdrHmcDiag sampler.
 
         Args:
             model: model with log density and gradient
-            stepsize: stepsize in each leapfrog step
-            steps: number of leapfrog steps
-            num_proposals: number of delayed rejection proposals. Defaults to 3.
+            stepsize: stepsize in each leapfrog step. Defaults to None.
+            steps: number of leapfrog steps. Defaults to None.
             metric_diag: diagonal of the metric. Defaults to None.
             init: initial value of the Markov chain. Defaults to None.
             seed: seed for numpy rng. Defaults to None.
+            num_proposals: number of delayed rejection proposals. Defaults to 3.
+            probabilistic: whether to use probabilistic delayed rejection. Defaults to True.
         """
-
         self._model = model
         self._dim = self._model.dims()
-        self._stepsize = stepsize if callable(stepsize) else lambda k: stepsize
-        self._steps = steps if callable(steps) else lambda k: steps
         self._num_proposals = num_proposals
+        self._probabilistic = probabilistic
+        self._stepsize_list = self._init_stepsize(stepsize)
+        self._steps_list = self._init_steps(steps)
         self._metric = metric_diag or np.ones(self._dim)
         self._rng = np.random.default_rng(seed)
         self._theta = (
@@ -107,19 +69,173 @@ class DrHmcDiag:
             if (init is not None and init.shape != (0,))
             else self._rng.normal(size=self._dim)
         )
-        self._stepsize_list = []
-        self._steps_list = []
 
-    def __iter__(self) -> Iterator[Draw]:
-        """Use the DrHmcDiag sampler as an iterator.
+    def _init_stepsize(
+        self,
+        stepsize: Optional[
+            Union[int | float, list[int | float], Callable[[int], int | float]]
+        ],
+    ) -> list[float]:
+        """List with leapfrog stepsizes used to generate each proposed sample.
+
+        Each proposed sample (theta_prop, rho_prop) is generated by taking multiple
+        leapfrog steps with a a fixed stepsize. Each distinct proposal, however, may
+        have a different stepsize. This function initializes the stepsize for
+        self._num_proposal such proposals.
+
+        This function accepts, among other valid inputs, a callable stepsize function.
+        This callable should accept the (integer) proposal number and return the
+        leapfrog stepsize for that proposal.
+
+        Intuitively, PdrHmcDiag reduces the stepsize in subsequent proposals if the
+        previous proposal was rejected for better resolution of high-curvature
+        state space regions.
+
+        Args:
+            stepsize: stepsize in each leapfrog step
+
+        Args:
+            stepsize: done
+
+        Raises:
+            ValueError: scalar with non-positive stepsize
+            ValueError: list with incorrect number of stepsizes
+            ValueError: list with non-positive stepsize
+            TypeError: list with non-numeric (int, float) stepsizes
+            ValueError: callable returns non-positive stepsize
+            TypeError: callable returns non-numeric (int, float) stepsize
+            TypeError: invalid type for stepsize
 
         Returns:
-            Iterator[Draw]: Iterator of draws from DrHmcDiag sampler
+            list[float]: leapfrog stepsizes for self._num_proposal proposals
+        """
+        if type(stepsize) is None:
+            stepsize = lambda k: 0.25 * (2**-k)
+            return [stepsize(k) for k in range(self._num_proposals)]
+
+        if type(stepsize) is int or type(stepsize) is float:
+            if not stepsize > 0:
+                raise ValueError(
+                    f"stepsize must be positive, but found stepsize of {stepsize}"
+                )
+            return [float(stepsize)] * self._num_proposals
+
+        elif type(stepsize) is list:
+            if len(stepsize) != self._num_proposals:
+                raise ValueError(
+                    f"list of stepsize must be of length {self._num_proposals}, but found {len(stepsize)} stepsizes"
+                )
+            for s in stepsize:
+                if not s > 0:
+                    raise ValueError(
+                        f"stepsize must be positive, but found stepsize of {s}"
+                    )
+                if type(s) is not int and type(s) is not float:
+                    raise TypeError(
+                        f"list of stepsizes must contain integers or floats, but found {type(s)} stepsize"
+                    )
+            return [float(s) for s in stepsize]
+
+        elif isinstance(stepsize, Callable):  # isinstance() allows for lambda functions
+            stepsize = [stepsize(k) for k in range(self._num_proposals)]
+            for s in stepsize:
+                if not s > 0:
+                    raise ValueError(
+                        f"stepsize must be positive, but found stepsize of {s}"
+                    )
+                if type(s) is not int and type(s) is not float:
+                    raise TypeError(
+                        f"callable must return integer or float stepsize, but found {type(s)} steps"
+                    )
+            return [float(s) for s in stepsize]
+
+        else:
+            raise TypeError("stepsize must be None, int, float, list, or callable")
+
+    def _init_steps(
+        self,
+        steps: Optional[Union[int, list[int], Callable[[int], int]]],
+    ) -> list[int | float]:
+        """List with number of leapfrog steps used to generate each proposed sample.
+
+        Each proposed sample (theta_prop, rho_prop) is generated by taking multiple
+        leapfrog steps with a a fixed stepsize. Each distinct proposal, however, may
+        have a different number of steps. This function initializes the number of steps
+        for self._num_proposal such proposals.
+
+        This function accepts, among other valid inputs, a callable stepsize function.
+        This callable should accept the (integer) proposal number and return the
+        number of leapfrog steps for that proposal.
+
+        Intuitively, PdrHmcDiag reduces the stepsize in subsequent proposals if the
+        previous proposal was rejected for better resolution of high-curvature
+        state space regions.
+
+        Args:
+            steps: number of leapfrog steps
+
+        Args:
+            steps: done
+
+        Raises:
+            ValueError: scalar with non-positive number of steps
+            ValueError: list with incorrect number of steps
+            ValueError: list with non-positive number of steps
+            TypeError: list with non-integer number of steps
+            ValueError: callable returns non-positive number of steps
+            TypeError: callable returns non-integer number of steps
+            TypeError: invalid type for steps
+
+        Returns:
+            list[int]: number of leapfrog steps for self._num_proposal proposals
+        """
+        if type(steps) is None:
+            steps = lambda k: 10 * (2**k)
+            return [steps(k) for k in range(self._num_proposals)]
+
+        if type(steps) is int:
+            if not steps > 0:
+                raise ValueError(f"steps must be positive, but found {steps} steps")
+            return [steps] * self._num_proposals
+
+        elif type(steps) is list:
+            if len(steps) != self._num_proposals:
+                raise ValueError(
+                    f"list of steps must be of length {self._num_proposals}, but found {len(steps)} steps"
+                )
+            for s in steps:
+                if not s > 0:
+                    raise ValueError(f"steps must be positive, but found {s} steps")
+                if type(s) is not int:
+                    raise TypeError(
+                        f"list of steps must contain integers, but found {type(s)} steps"
+                    )
+            return steps
+
+        elif isinstance(steps, Callable):  # isinstance() allows for lambda functions
+            steps = [steps(k) for k in range(self._num_proposals)]
+            for s in steps:
+                if not s > 0:
+                    raise ValueError(f"steps must be positive, but found {s} steps")
+                if type(s) is not int:
+                    raise TypeError(
+                        f"callable must return integers number of steps, but found {type(s)} steps"
+                    )
+            return steps
+
+        else:
+            raise TypeError("steps must be None, int, list, or callable")
+
+    def __iter__(self) -> Iterator[Draw]:
+        """Use the PdrHmcDiag sampler as an iterator.
+
+        Returns:
+            Iterator[Draw]: Iterator of draws from PdrHmcDiag sampler
         """
         return self
 
     def __next__(self) -> Draw:
-        """Yields next draw from DrHmcDiag iterator.
+        """Yields next draw from PdrHmcDiag iterator.
 
         Yields:
             Draw: Tuple of (sample, log density)
@@ -177,40 +293,37 @@ class DrHmcDiag:
         rho = rho_mid + 0.5 * stepsize * np.multiply(self._metric, grad)
         return (theta, rho)
 
-    def get_stepsize(self, k) -> float:
-        """Computes new leapfrog stepsize for delayed rejection proposal.
+    def _probability_of_delayed_rejection(self, hastings: float) -> float:
+        """Log probability of making another proposal upon rejection.
 
-        Stores new stepsize to compute ghost proposals later.
+        To reduce average cost per iteration for DRHMC, make the delayed rejections
+        probabilistic, such that a subsequent proposal is not mandatory upon rejection.
+
+        One approach to probabilistic delayed rejection is: construct a proposal
+        probability that makes it less likely for a subsequent proposal if the previous
+        proposal was rejected on random chance, despite having a high acceptance
+        probabilty; if the first proposal was rejected strongly, which may indicate a
+        bad region of the state space, then make it more likely to make a subsequent
+        proposal.
+
+        A heuristic proposal probability that achieve this is eqn. 31 in Chirag et al:
+        the probability of making proposal k+1, upon rejecting proposal k, is the
+        probability rejecting the previous proposal k; intuition explained in the
+        paper. The proposal probability of making the first proposal, however, is
+        always 1.
+
+        This proposal probability modifies the proposal kernel, which alters detailed
+        balance. Thus the probability of accepting a proposal is multiplied by the
+        hasting term of the propopsed sample (numerator) and hastings term of the
+        current sample (denominator).
 
         Args:
-            k: number of delayed rejection proposals
-
-        Returns:
-            float: new stepsize for each leapfrog step
+            hastings: log probability of rejecting all previous proposals
         """
-        stepsize = self._stepsize(k)
-        validate_stepsize(stepsize)
-        self._stepsize_list.append(stepsize)
-        return stepsize
-
-    def get_steps(self, k) -> int:
-        """Computes new number of leapfrog steps for delayed rejection proposal.
-
-        Stores new stepsize to compute ghost proposals later.
-
-        Args:
-            k: number of delayed rejection proposals
-
-        Returns:
-            int: new number of steps for leapfrog integrator
-        """
-        steps = self._steps(k)
-        validate_steps(steps)
-        self._steps_list.append(steps)
-        return steps
+        return hastings if self._probabilistic else 0.0
 
     def sample(self) -> Draw:
-        """Sample from target distribution with DrHmcDiag sampler.
+        """Sample from target distribution with PdrHmcDiag sampler.
 
         From current sample (theta, rho), propose new sample (theta_prop, rho_prop)
         and compute its acceptance probability. If accepted, return the new sample and
@@ -224,48 +337,58 @@ class DrHmcDiag:
             Draw: Tuple of (sample, log density)
         """
         rho = self._rng.normal(size=self._dim)
-        logp = self.joint_logp(self._theta, rho)
-        log_denom = 0
+        logp_cur = self.joint_logp(self._theta, rho)
+        hastings_cur, reject_logp = 0.0, 0.0
+
         for k in range(self._num_proposals):
-            stepsize, steps = self.get_stepsize(k), self.get_steps(k)
+            pdr = self._probability_of_delayed_rejection(reject_logp)
+            if not np.log(self._rng.uniform()) < pdr:
+                break
+
+            stepsize, steps = self._stepsize_list[k], self._steps_list[k]
             theta_prop, rho_prop = self.leapfrog(self._theta, rho, stepsize, steps)
-            rho_prop *= -1
+            rho_prop = -rho_prop
             accept_logp, logp_prop = self.accept(
-                theta_prop, rho_prop, k, log_denom, logp
+                theta_prop, rho_prop, k, hastings_cur, logp_cur
             )
-            log_denom += 1 - np.exp(accept_logp)
+
             if np.log(self._rng.uniform()) < accept_logp:
                 self._theta, rho = theta_prop, rho_prop
-                logp = logp_prop
-        return self._theta, logp
+                logp_cur = logp_prop
+                break
+
+            reject_logp = np.log1p(-np.exp(accept_logp))
+            hastings_cur += reject_logp
+        return self._theta, logp_cur
 
     def accept(
         self,
         theta_prop: NDArray[np.float64],
         rho_prop: NDArray[np.float64],
         k: int,
-        log_denom: float,
-        logp: float,
+        hastings_cur: float,
+        logp_cur: float,
     ) -> tuple[float, float]:
         """Log acceptance probability of transitioning from current to proposed sample.
 
         Recursively compute log probability density of accepting transition from
         current sample (theta, rho) to proposed sample (theta_prop, rho_prop).
-        Information about the current sample is contained in logp.
+        Information about the current sample is contained in logp_cur and is *not*
+        passed into the function directly via (theta, rho) for efficient reuse.
 
         Acceptance probability is computed following 'Delayed rejection Hamiltonian
         Monte Carlo for sampling multiscale distributions' by Chirag et al. In
         particular, we follow eqn. 29 (acceptance probability for k-th proposal of
         delayed rejection) eqn. 30 (acceptance probability for 2nd proposal of
         probablistic delayed rejection), and eqn. 31 (heuristic proposal
-        probability) to compute the acceptance probability for the k-th probabilistic 
+        probability) to compute the acceptance probability for the k-th probabilistic
         delayed rejection proposal.
 
-        Optimize computation by passing log_denom and logp from previous proposal
+        Optimize computation by passing hastings_cur and logp from previous proposal
         and by returning logp_prop. This is less readable but ensures (1) only one
-        density evaluation per sample, (2) no recursion is required to compute the
-        denominator of eqn. 29, and (3) recursion on the numerator of eqn. 29 is done
-        efficiently.
+        density evaluation per sample outside of leapfrog, (2) no recursion is required
+        to compute the denominator of eqn. 29, and (3) recursion on the numerator of
+        eqn. 29 is done efficiently.
 
         Proposed samples are generated by running the leapfrog integrator from the
         *current sample*. To maintain detailed balance, 'ghost proposals' are similarly
@@ -275,27 +398,44 @@ class DrHmcDiag:
         previous proposed samples in the denominator and rejecting all previous ghost
         samples in the numerator. More details in section 3 of Chirag et al.
 
-        Flip momemntum after each ghost proposal to ensure detailed balance.
+        Flip momentum after each ghost proposal to ensure detailed balance.
 
         Args:
             theta_prop: proposed position
             rho_prop: proposed momentum
             k: number of delayed rejection proposals
-            log_denom: log probability of rejecting all previous proposals
+            hastings_cur: log probability of rejecting all previous proposals
             logp: log probability of current sample
 
         Returns:
             tuple[float, float]: log probability of acceptance and proposed sample
         """
         logp_prop = self.joint_logp(theta_prop, rho_prop)
-        log_num = 0
+        hastings_prop = 0
+
         for i in range(k):
             stepsize, steps = self._stepsize_list[i], self._steps_list[i]
             theta_ghost, rho_ghost = self.leapfrog(
                 theta_prop, rho_prop, stepsize, steps
             )
             rho_ghost = -rho_ghost
-            accept_logp, _ = self.accept(theta_ghost, rho_ghost, i, log_num, logp_prop)
-            reject_logp = np.log1p(-np.exp(accept_logp) + 1e-16)
-            log_num += reject_logp
-        return min(0, (logp_prop - logp) + (log_num - log_denom)), logp_prop
+            accept_logp, _ = self.accept(
+                theta_ghost, rho_ghost, i, hastings_prop, logp_prop
+            )
+
+            # experimental early stopping to avoid -inf in np.log1p
+            if accept_logp == 0:
+                return -np.inf, logp_prop
+
+            reject_logp = np.log1p(-np.exp(accept_logp))
+            hastings_prop += reject_logp
+
+        pdr_prop = self._probability_of_delayed_rejection(hastings_prop)
+        pdr_cur = self._probability_of_delayed_rejection(hastings_cur)
+
+        detailed_balance = (
+            (logp_prop - logp_cur)
+            + (hastings_prop - hastings_cur)
+            + (pdr_prop - pdr_cur)
+        )
+        return min(0, detailed_balance), logp_prop
