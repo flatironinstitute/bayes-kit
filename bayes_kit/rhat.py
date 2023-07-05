@@ -13,10 +13,10 @@ def split_chains(chains: list[SeqType]) -> list[SeqType]:
     a list twice as long as the input.  For example,
     ```
     >>> split_chains([[1, 2, 3, 4], [5, 6, 7]])
-    [[1, 2], [3, 4], [5, 6], [7]]
+    [[1, 2], [3, 4], [5], [6, 7]]
     ```
 
-    Parameters:
+    Args:
     chains: List of univariate Markov chains.
 
     Returns:
@@ -27,11 +27,21 @@ def split_chains(chains: list[SeqType]) -> list[SeqType]:
 
 def rank_chains(chains: list[SeqType]) -> list[SeqType]:
     """
-    Returns a copy of the included Markov chains transformed with
-    ranks normalized to [0, 1] and an offset inverse CDF. The ranks
-    are ascending and start with 1 for the smallest value.
+    Returns a copy of the included Markov chains with all values
+    transformed to ranks.  Ranks are ascending and start at 1.
 
-    Parameters:
+    For example,
+    ```python
+    >>> rank_chains([[4.2, 5.7], [7.2, 6.1], [-12.9, 107]])
+    [[2, 3], [5, 4], [1, 6]]
+    ```
+    The values in the chains and the ranks are
+    ```
+    Values: -12.9, 4.2, 5.7, 6.1, 7.2, 107
+    Ranks:      1,   2,   3    4    5,   6
+    ```
+
+    Args:
     chains: list of univariate Markov chains
 
     Returns:
@@ -55,7 +65,7 @@ def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
 
     The rank-normalized value for element `j` of list `i` is
     ```
-    inverse_Phi((rank[i][j] - 3/8) / (size(chains) - 1/4),
+    inv_Phi((rank[i][j] - 3/8) / (size(chains) - 1/4),
     ```
     where `inv_Phi` is the inverse cumulative distribution function for
     the standard normal distribution and
@@ -67,7 +77,22 @@ def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
 
     For a specification of ranking, see :func:`rank_chains`.
 
-    Parameters:
+    The transformed values will be int he same order as the original
+    values,
+    ```python
+    >>> rank_normalize_chains([[4.2, 5.7], [7.2, 6.1], [-12.9, 107]])
+    [[-0.550, -0.087], [0.889, 0.356], [-1.188, 2.225]]
+    ```
+
+    Subtracting 3/8 in the numerator and 1/4 in the denominator ensures
+    values are in (0, 1) before the application of the inverse normal
+    CDF.  The particular constants used are recommended by the following
+    book.
+
+    Blom, G. (1958). Statistical Estimates and Transformed
+    Beta-Variables. Wiley; New York.
+
+    Args:
     chains: List of univariate Markov chains.
 
     Returns:
@@ -84,33 +109,57 @@ def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
 
 
 def rhat(chains: list[SeqType]) -> FloatType:
-    """
-    Return the potential scale reduction factor (R-hat) for a list of Markov chains.
+    """Return the potential scale reduction factor (R-hat) for a list of
+    Markov chains.
 
-    If there are `M` chains of length `N[m]` each, with draws `theta[m, n]`,
-    then `R-hat = sqrt((mean(N) - 1) / mean(N) + var(phi) / mean(psi))`, where
-    `phi[m] = mean(chains[m])` and `psi[m] = var(chains[m])`.  This reduces to
-    the standard definition when all chains are the same length.
+    The R-hat value indicates how much the scale (i.e., standard
+    deviation) of the distribution of values in the chains might be
+    reduced by running longer.  If all chains have converged to an
+    equilibrium distribution, the value of R-hat will be 1; if they have
+    not converged, R-hat will be greater than 1.  As chain length
+    increases, R-hat will converge to 1 if the Markov chains are well
+    behaved in the sense of having the correct stationary distribution.
+
+    Suppose there are `M` chains of length `N[m]` each, with draws
+    `chains[m, n]`.  In particular, note that `N`, `phi`, and `psi` are
+    all arrays.  Define the R-hat statistic as
+    ```
+    R-hat = sqrt((mean(N) - 1) / mean(N) + var(phi) / mean(psi)),
+    ```
+    where
+    ```
+    phi[m] = mean(chains[m])
+    ```
+    is the sample mean of chain `m` (i.e., `np.mean(chains[m])` in
+    NumPy) and
+    ```
+    psi[m] = var(chains[m])
+    ```
+    is the sample variance of chain `m` (i.e., `np.var(chains[m],
+    ddof=1)` in NumPy).
 
     R-hat was introduced in the following paper.
 
     Gelman, A. and Rubin, D. B., 1992. Inference from iterative simulation using
     multiple sequences. Statistical Science, 457--472.
 
-    Parameters:
-    chains: list of univariate Markov chains
+    This function reduces to the definition in the paper when all the
+    chains are the same length.
+
+    Args:
+    chains: List of univariate Markov chains.
 
     Returns:
-    R-hat statistic
+    R-hat statistic.
 
     Throws:
-    ValueError: If there is not at least one chain or if any chain has
-    fewer than two elements.
+    ValueError: If there is not at least one chain.
+    ValueError: If any chain has fewer than two elements.
     """
     if len(chains) < 2:
         raise ValueError(f"rhat requires len(chains) >= 2, but {len(chains) = }")
     if not all(len(chain) >= 2 for chain in chains):
-        raise ValueError(f"rhat requires len(chain) >= 2 for all chain in chains")
+        raise ValueError(f"rhat requires len(chain) >= 2 for every chain in chains")
     chain_lengths = [len(chain) for chain in chains]
     mean_chain_length = np.mean(chain_lengths)
     means = [np.mean(chain) for chain in chains]
@@ -138,15 +187,15 @@ def split_rhat(chains: list[SeqType]) -> FloatType:
 
     See :func:`split_chains` for a specification of splitting.
 
-    Parameters:
+    Args:
     chains: List of univariate Markov chains.
 
     Returns:
     Split R-hat statistic.
 
     Throws:
-    ValueError: If there are fewer than two chains or if any chain has
-    fewer than than four elements.
+    ValueError: If there are fewer than two chains.
+    ValueError: If any chain has fewer than than four elements.
     """
     return rhat(split_chains(chains))
 
@@ -167,14 +216,14 @@ def rank_normalized_rhat(chains: list[SeqType]) -> FloatType:
     See :func:`split_rhat` for a specification of split R-hat and
     :func:`rank_normalize_chains` for rank normalization.
 
-    Parameters:
+    Args:
     chains: List of univariate Markov chains.
 
     Returns:
     Rank-normalized R-hat statistic.
 
     Throws:
-    ValueError: If there are fewer than two chains or if any chain has
-    fewer than than four elements.
+    ValueError: If there are fewer than two chains.
+    ValueError: If any chain has fewer than than four elements.
     """
     return split_rhat(rank_normalize_chains(chains))

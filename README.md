@@ -110,9 +110,10 @@ where the temperature `t[n]` runs from 0 to 1 across iterations.
 
 ## Dependencies
 
-`bayes-kit` only depends on a single external package,
+`bayes-kit` only depends on two external packages,
 
-* [NumPy](https://numpy.org).
+* [NumPy](https://numpy.org), and
+* [SciPy](https://scipy.org).
 
 ## Licensing
 

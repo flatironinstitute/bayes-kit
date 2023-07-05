@@ -41,13 +41,18 @@ def test_rhat_ragged():
     np.testing.assert_allclose(rhat_expected(chains), rhat(chains), atol=0.1, rtol=0.2)
 
 
-def test_rhat_size_exceptions():
-    bad1 = []
-    bad2 = ([[1.01, 1.2, 1.3, 1.4]],)
-    bad3 = [[1, 2, 3], [4], [5, 6, 7, 8, 9]]
-    for chains in [bad1, bad2, bad3]:
-        with pt.raises(ValueError):
-            rhat(chains)
+# require at least two elements
+bad1 = []
+# require at least two elements
+bad2 = ([[1.01, 1.2, 1.3, 1.4]],)
+# require at least two elements per chain
+bad3 = [[1, 2, 3], [4], [5, 6, 7, 8, 9]]
+
+
+@pt.mark.parametrize("bad_chains", [bad1, bad2, bad3])
+def test_rhat_size_exceptions(bad_chains):
+    with pt.raises(ValueError):
+        rhat(bad_chains)
 
 
 def test_split_chains():
@@ -72,13 +77,14 @@ def test_split_rhat():
     )
 
 
-def test_split_rhat_size_exceptions():
-    bad1 = []
-    bad2 = [[1.01, 1.2, 1.3]]
-    bad3 = [[1, 2, 3], [4, 5, 6, 7]]
-    for chains in [bad1, bad2, bad3]:
-        with pt.raises(ValueError):
-            split_rhat(chains)
+# require at least four elements per chain
+bad4 = [[1, 2, 3], [4, 5, 6, 7]]
+
+
+@pt.mark.parametrize("bad_split_chains", [bad1, bad2, bad3, bad4])
+def test_split_rhat_size_exceptions(bad_split_chains):
+    with pt.raises(ValueError):
+        split_rhat(bad_split_chains)
 
 
 def test_rank_chains():
