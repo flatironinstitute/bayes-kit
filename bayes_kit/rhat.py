@@ -61,6 +61,11 @@ def rank_chains(chains: list[SeqType]) -> list[SeqType]:
 def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
     """Return the rank-normalized version of the input chains.
 
+    Rank normalization maps the ranks to the range (0, 1) and then returns
+    the quantiles of the standard-normal distribution for the resulting
+    values. A small margin is first applied to avoid infinite values from
+    the ppf function.
+
     The rank-normalized value for element `j` of list `i` is
     ```
     inv_Phi((rank[i][j] - 3/8) / (size(chains) - 1/4),
@@ -74,17 +79,15 @@ def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
 
     For a specification of ranking, see :func:`rank_chains`.
 
-    The transformed values will be int he same order as the original
+    The transformed values will be in the same order as the original
     values,
     ```python
     >>> rank_normalize_chains([[4.2, 5.7], [7.2, 6.1], [-12.9, 107]])
     [[-0.550, -0.087], [0.889, 0.356], [-1.188, 2.225]]
     ```
 
-    Subtracting 3/8 in the numerator and 1/4 in the denominator ensures
-    values are in (0, 1) before the application of the inverse normal
-    CDF.  The particular constants used are recommended by the following
-    book.
+    The specific transform used, with constants 3/8 and 1/4, was
+    introduced in the following book.
 
     Blom, G. (1958). Statistical Estimates and Transformed
     Beta-Variables. Wiley; New York.
