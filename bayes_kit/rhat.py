@@ -1,19 +1,19 @@
 import numpy as np
-from numpy.typing import NDArray, ArrayLike
+from typing import Union, Sequence
+from numpy.typing import NDArray
 import scipy as sp
 
 FloatType = np.float64
 VectorType = NDArray[FloatType]
-SeqType = ArrayLike
-
+SeqType = Union[Sequence[float], NDArray[np.float64]]
 
 def split_chains(chains: list[SeqType]) -> list[SeqType]:
-    """
-    Return a list of the input chains split in half.  The result will be
-    a list twice as long as the input.  For example,
+    """Return a list of the input chains split in half.  The result will
+    be a list twice as long as the input.  For odd sized chains, the
+    first half will be one element longer.  For example,
     ```
-    >>> split_chains([[1, 2, 3, 4], [5, 6, 7]])
-    [[1, 2], [3, 4], [5], [6, 7]]
+    >>> split_chains([[1, 2, 3], [4, 5, 6, 7]])
+    [[1, 2], [3], [4, 5], [6, 7]]
     ```
 
     Args:
@@ -22,8 +22,7 @@ def split_chains(chains: list[SeqType]) -> list[SeqType]:
     Returns:
     List of input chains split in half.
     """
-    return [list(arr) for chain in chains for arr in np.array_split(chain, 2)]
-
+    return [arr for chain in chains for arr in np.array_split(chain, 2)]
 
 def rank_chains(chains: list[SeqType]) -> list[SeqType]:
     """
@@ -59,7 +58,6 @@ def rank_chains(chains: list[SeqType]) -> list[SeqType]:
         current_index += size
     return reshaped_arrays
 
-
 def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
     """Return the rank-normalized version of the input chains.
 
@@ -67,13 +65,12 @@ def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
     ```
     inv_Phi((rank[i][j] - 3/8) / (size(chains) - 1/4),
     ```
-    where `inv_Phi` is the inverse cumulative distribution function for
-    the standard normal distribution and
-    ```
-    rank[i][j] = rank_chains(chains)[i][j]
-    ```
-    is the rank of element `i` in chain `j` and `size(chains)` is the
-    total number of elements in the chains.
+    where 
+    * `inv_Phi` is the inverse cumulative distribution function for
+    the standard normal distribution,
+    * `rank[i][j] = rank_chains(chains)[i][j]` is the rank of element
+    `i` in chain `j`, and 
+    * `size(chains)` is the total number of elements in the chains.
 
     For a specification of ranking, see :func:`rank_chains`.
 
@@ -99,14 +96,10 @@ def rank_normalize_chains(chains: list[SeqType]) -> list[SeqType]:
     List of chains with values replaced by rank-normalized values.
     """
     S = sum([len(chain) for chain in chains])
-    result = chains
-    ranked_chains = rank_chains(chains)
-    for i, chain_i in enumerate(ranked_chains):
-        for j, rank_ij in enumerate(chain_i):
-            val = sp.stats.norm.ppf((rank_ij - 0.325) / (S - 0.25))
-            result[i][j] = val
+    result = []
+    for chain_i in rank_chains(chains):
+        result.append([sp.stats.norm.ppf((rank_ij - 0.325) / (S - 0.25)) for rank_ij in chain_i])
     return result
-
 
 def rhat(chains: list[SeqType]) -> FloatType:
     """Return the potential scale reduction factor (R-hat) for a list of
@@ -170,13 +163,14 @@ def rhat(chains: list[SeqType]) -> FloatType:
     )
     return r_hat
 
-
 def split_rhat(chains: list[SeqType]) -> FloatType:
-    """
-    Return the potential scale reduction factor (R-hat) for a list of
+    """Return the potential scale reduction factor (R-hat) for a list of
     Markov chains consisting of each of the input chains split in half.
-    Unlike the base `rhat(chains)` function, this version is applicable
-    to a single Markov chain.
+
+    The main utility of splitting is to diagnose non-stationary chains
+    (e.g., ones with an upward or downward trend).  Unlike the base
+    `rhat(chains)` function, this version is applicable to a single
+    Markov chain.
 
     Split R-hat was introduced in the *Stan Reference Manual.*  The
     first official publication was in the following book.
@@ -185,7 +179,7 @@ def split_rhat(chains: list[SeqType]) -> FloatType:
     A. and Rubin, D.B., 2013. *Bayesian Data Analysis.* Third Edition.
     CRC press.
 
-    See :func:`split_chains` for a specification of splitting.
+    See :func:`split_chains` for a definition of splitting.
 
     Args:
     chains: List of univariate Markov chains.
@@ -194,17 +188,21 @@ def split_rhat(chains: list[SeqType]) -> FloatType:
     Split R-hat statistic.
 
     Throws:
-    ValueError: If there are fewer than two chains.
+    ValueError: If there are no chains.
     ValueError: If any chain has fewer than than four elements.
     """
     return rhat(split_chains(chains))
-
 
 def rank_normalized_rhat(chains: list[SeqType]) -> FloatType:
     """Return the rank-normalized R-hat for the specified chains.
     Rank normalized r-hat replaces each value in the chains with its
     rank, applies a shifted inverse standard normal cdf, and
     returns the split R-hat value of the result.
+
+    Rank-normalized R-hat should be more robust in situations where the
+    stationary distribution of the Markov chains is not normal (e.g.,
+    for density targets for which means and/or variances are undefined,
+    such as the Cauchy distribution).
 
     Rank-normalized R-hat was introduced in the following paper.
 
