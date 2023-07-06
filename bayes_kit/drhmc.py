@@ -7,28 +7,26 @@ from .model_types import GradModel
 Draw = tuple[NDArray[np.float64], float]
 
 
-class PdrHmcDiag:
-    """Probabilistic Delayed Rejection Hamiltonian Monte Carlo diagonal-metric sampler.
+class PdrGhmcDiag:
+    """Generalized HMC sampler with Probabilistic Delayed Rejection + diagonal metric.
 
-    To sample from a target distribution, PdrHmcDiag proposes a new sample from the
-    current sample using a leapfrog integrator. The probability of accepting this
-    transition is recursively computed. If accepted, PdrHmcDiag returns the proposed
-    sample and its log density. If rejected, PdrHmcDiag proposes a new sample generated
-    with a smaller step size for the leapfrog integrator. This process is repeated
-    until a maximum number of proposals is reached or probabilistic delayed rejection
-    determines not to propose a new sample.
+    To sample from a target distribution, PdrGhmcDiag proposes a new sample from the
+    current sample using the leapfrog integrator. The probability of accepting this
+    transition is recursively computed. If accepted, PdrGhmcDiag returns the proposed
+    sample and its log density. If rejected, PdrGhmcDiag proposes a new sample generated
+    with new stepsize and number of steps for the leapfrog integrator. This process is
+    repeated until a maximum number of proposals is reached or probabilistic delayed
+    rejection terminates early.
 
-    Probabilistic delayed rejection proposes a new sample with some probability
-    dependent on where we are in the distribution. If a proposal has low acceptance
-    probability and was rejected, propose another sample; if a proposal has high
-    acceptance probablity but was rejected by chance, do not propose another
-    sample. More details found in section 3.2 of Chirag et al.
+    Intuitively, PdrGhmcDiag reduces the stepsize in subsequent proposals if the
+    previous proposal was rejected for better sampling resolution of high-curvature
+    state space regions.
 
-    Implementation of PdrHmcDiag is based on: Modi, Chirag, Alex Barnett, and Bob
-    Carpenter. "Delayed rejection Hamiltonian Monte Carlo for sampling multiscale
-    distributions." Bayesian Analysis 1.1 (2023): 1-28. While the paper represents
-    position and momentum with (p, q), this implementation uses (theta, rho) for
-    consistency with bayes-kit. All computations are done on the log scale.
+    Implementation based on Modi, Chirag, Alex Barnett, and Bob Carpenter. "Delayed
+    rejection Hamiltonian Monte Carlo for sampling multiscale distributions." Bayesian
+    Analysis 1.1 (2023): 1-28. While the paper represents position and momentum with
+    (p, q), this implementation uses (theta, rho) for consistency with bayes-kit. All
+    computation done on the log scale.
     """
 
     def __init__(
@@ -43,15 +41,16 @@ class PdrHmcDiag:
         metric_diag: Optional[NDArray[np.float64]] = None,
         init: Optional[NDArray[np.float64]] = None,
         seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
+        dampening: float = 1.0,
     ):
-        """Initialize the PdrHmcDiag sampler.
+        """Initialize the PdrGhmcDiag sampler.
 
         Args:
             model: model with log density and gradient
             stepsize: stepsize in each leapfrog step. Defaults to None.
             steps: number of leapfrog steps. Defaults to None.
             metric_diag: diagonal of the metric. Defaults to None.
-            init: initial value of the Markov chain. Defaults to None.
+            init: initial sample (theta, rho). Defaults to None.
             seed: seed for numpy rng. Defaults to None.
             num_proposals: number of delayed rejection proposals. Defaults to 3.
             probabilistic: whether to use probabilistic delayed rejection. Defaults to True.
@@ -69,6 +68,10 @@ class PdrHmcDiag:
             if (init is not None and init.shape != (0,))
             else self._rng.normal(size=self._dim)
         )
+        self._rho = self._rng.normal(size=self._dim)
+        if not 0 <= dampening <= 1:
+            raise ValueError(f"dampening must be within [0, 1] inclusive")
+        self._dampening = dampening
 
     def _init_stepsize(
         self,
@@ -86,10 +89,6 @@ class PdrHmcDiag:
         This function accepts, among other valid inputs, a callable stepsize function.
         This callable should accept the (integer) proposal number and return the
         leapfrog stepsize for that proposal.
-
-        Intuitively, PdrHmcDiag reduces the stepsize in subsequent proposals if the
-        previous proposal was rejected for better resolution of high-curvature
-        state space regions.
 
         Args:
             stepsize: stepsize in each leapfrog step
@@ -167,7 +166,7 @@ class PdrHmcDiag:
         This callable should accept the (integer) proposal number and return the
         number of leapfrog steps for that proposal.
 
-        Intuitively, PdrHmcDiag reduces the stepsize in subsequent proposals if the
+        Intuitively, PdrGhmcDiag reduces the stepsize in subsequent proposals if the
         previous proposal was rejected for better resolution of high-curvature
         state space regions.
 
@@ -227,15 +226,15 @@ class PdrHmcDiag:
             raise TypeError("steps must be None, int, list, or callable")
 
     def __iter__(self) -> Iterator[Draw]:
-        """Use the PdrHmcDiag sampler as an iterator.
+        """Use the PdrGhmcDiag sampler as an iterator.
 
         Returns:
-            Iterator[Draw]: Iterator of draws from PdrHmcDiag sampler
+            Iterator[Draw]: Iterator of draws from PdrGhmcDiag sampler
         """
         return self
 
     def __next__(self) -> Draw:
-        """Yields next draw from PdrHmcDiag iterator.
+        """Yields next draw from PdrGhmcDiag iterator.
 
         Yields:
             Draw: Tuple of (sample, log density)
@@ -285,37 +284,35 @@ class PdrHmcDiag:
         """
         theta = np.array(theta, copy=True)
         _, grad = self._model.log_density_gradient(theta)
-        rho_mid = rho - 0.5 * stepsize * np.multiply(self._metric, grad)
-        for n in range(steps):
-            rho_mid += stepsize * np.multiply(self._metric, grad)
+        rho_mid = rho - 0.5 * stepsize * np.multiply(self._metric, grad).squeeze()
+        for _ in range(steps):
+            rho_mid += stepsize * np.multiply(self._metric, grad).squeeze()
             theta += stepsize * rho_mid
             _, grad = self._model.log_density_gradient(theta)
-        rho = rho_mid + 0.5 * stepsize * np.multiply(self._metric, grad)
+        rho = rho_mid + 0.5 * stepsize * np.multiply(self._metric, grad).squeeze()
         return (theta, rho)
 
-    def _probability_of_delayed_rejection(self, hastings: float) -> float:
+    def _prob_of_delayed_rejection(self, hastings: float) -> float:
         """Log probability of making another proposal upon rejection.
 
         To reduce average cost per iteration for DRHMC, make the delayed rejections
         probabilistic, such that a subsequent proposal is not mandatory upon rejection.
 
-        One approach to probabilistic delayed rejection is: construct a proposal
-        probability that makes it less likely for a subsequent proposal if the previous
-        proposal was rejected on random chance, despite having a high acceptance
-        probabilty; if the first proposal was rejected strongly, which may indicate a
-        bad region of the state space, then make it more likely to make a subsequent
-        proposal.
+        Probabilistic delayed rejection proposes a new sample with some probability
+        dependent on where we are in the distribution. If a proposal has low acceptance
+        probability and was rejected, propose another sample; if a proposal has high
+        acceptance probablity but was rejected by chance, do not propose another
+        sample. More details found in section 3.2 of Chirag et al.
 
         A heuristic proposal probability that achieve this is eqn. 31 in Chirag et al:
-        the probability of making proposal k+1, upon rejecting proposal k, is the
-        probability rejecting the previous proposal k; intuition explained in the
-        paper. The proposal probability of making the first proposal, however, is
-        always 1.
+        the probability of making proposal k+1, after rejecting proposal k, is the
+        probability of rejecting proposal k. The proposal probability of making the
+        first proposal, however, is always 1.
 
         This proposal probability modifies the proposal kernel, which alters detailed
         balance. Thus the probability of accepting a proposal is multiplied by the
-        hasting term of the propopsed sample (numerator) and hastings term of the
-        current sample (denominator).
+        hasting term of the propopsed sample divided by the hastings term of the
+        current sample.
 
         Args:
             hastings: log probability of rejecting all previous proposals
@@ -323,42 +320,50 @@ class PdrHmcDiag:
         return hastings if self._probabilistic else 0.0
 
     def sample(self) -> Draw:
-        """Sample from target distribution with PdrHmcDiag sampler.
+        """Sample from target distribution with PdrGhmcDiag sampler.
 
         From current sample (theta, rho), propose new sample (theta_prop, rho_prop)
         and compute its acceptance probability. If accepted, return the new sample and
-        its log density. If rejected, propose a new sample and repeat the process; stop
-        when the maximum number of proposals is reached or when probabilistic delayed
-        rejection determines not to propose a new sample.
+        its log density; if rejected, propose a new sample and repeat. Stop when the
+        maximum number of proposals is reached or when probabilistic delayed rejection
+        terminates early.
 
-        Flip momemntum after each proposal to ensure detailed balance.
+        Flip momemntum after each proposal to ensure detailed balance. Flip momentum
+        before return statement for momentum persistence in Generalized HMC.
 
         Returns:
             Draw: Tuple of (sample, log density)
         """
-        rho = self._rng.normal(size=self._dim)
-        logp_cur = self.joint_logp(self._theta, rho)
+        self._rho = self._rng.normal(
+            loc=self._rho * np.sqrt(1 - self._dampening),
+            scale=self._dampening,
+            size=self._dim,
+        )
+        logp_cur = self.joint_logp(self._theta, self._rho)
         hastings_cur, reject_logp = 0.0, 0.0
 
         for k in range(self._num_proposals):
-            pdr = self._probability_of_delayed_rejection(reject_logp)
+            pdr = self._prob_of_delayed_rejection(reject_logp)
             if not np.log(self._rng.uniform()) < pdr:
                 break
 
             stepsize, steps = self._stepsize_list[k], self._steps_list[k]
-            theta_prop, rho_prop = self.leapfrog(self._theta, rho, stepsize, steps)
+            theta_prop, rho_prop = self.leapfrog(
+                self._theta, self._rho, stepsize, steps
+            )
             rho_prop = -rho_prop
+
             accept_logp, logp_prop = self.accept(
                 theta_prop, rho_prop, k, hastings_cur, logp_cur
             )
-
             if np.log(self._rng.uniform()) < accept_logp:
-                self._theta, rho = theta_prop, rho_prop
+                self._theta, self._rho = theta_prop, rho_prop
                 logp_cur = logp_prop
                 break
 
             reject_logp = np.log1p(-np.exp(accept_logp))
             hastings_cur += reject_logp
+        self._rho = -self._rho  # always flip momentum in GHMC
         return self._theta, logp_cur
 
     def accept(
@@ -376,13 +381,14 @@ class PdrHmcDiag:
         Information about the current sample is contained in logp_cur and is *not*
         passed into the function directly via (theta, rho) for efficient reuse.
 
-        Acceptance probability is computed following 'Delayed rejection Hamiltonian
-        Monte Carlo for sampling multiscale distributions' by Chirag et al. In
-        particular, we follow eqn. 29 (acceptance probability for k-th proposal of
-        delayed rejection) eqn. 30 (acceptance probability for 2nd proposal of
-        probablistic delayed rejection), and eqn. 31 (heuristic proposal
-        probability) to compute the acceptance probability for the k-th probabilistic
-        delayed rejection proposal.
+        Acceptance probability for the k-th proposed sample, with probabilistic delayed
+        rejection, is computed by extending eqns. 29, 30, and 31 of Chirag et al. The
+        acceptance probability contains three terms for the current and proposed
+        samples respectively:
+
+            1. the joint log density
+            2. the hastings term for asymmetric proposal kernels; simplfies to the probability of rejecting previous/ghost proposals
+            3. the probability of proposing another sample upon rejection
 
         Optimize computation by passing hastings_cur and logp from previous proposal
         and by returning logp_prop. This is less readable but ensures (1) only one
@@ -394,9 +400,11 @@ class PdrHmcDiag:
         *current sample*. To maintain detailed balance, 'ghost proposals' are similarly
         generated by running the leapfrog integrator from the *proposed sample*.
         (Proposed samples and ghost samples of the same order are generated with the
-        same leapfrog stepsize and number of steps.) Eqn. 29 computes rejecting all
-        previous proposed samples in the denominator and rejecting all previous ghost
-        samples in the numerator. More details in section 3 of Chirag et al.
+        same leapfrog stepsize and number of steps.)
+
+        When acceptance probability of a ghost proposal is 1, the hastings term of the
+        proposed sample is completely zeroed out. Thus early stopping is implemented to
+        avoid extra computation and sidestep negative infinity log probabilities.
 
         Flip momentum after each ghost proposal to ensure detailed balance.
 
@@ -419,19 +427,17 @@ class PdrHmcDiag:
                 theta_prop, rho_prop, stepsize, steps
             )
             rho_ghost = -rho_ghost
+
             accept_logp, _ = self.accept(
                 theta_ghost, rho_ghost, i, hastings_prop, logp_prop
             )
-
-            # experimental early stopping to avoid -inf in np.log1p
-            if accept_logp == 0:
+            if accept_logp == 0:  # early stopping to avoid -inf in np.log1p
                 return -np.inf, logp_prop
-
             reject_logp = np.log1p(-np.exp(accept_logp))
             hastings_prop += reject_logp
 
-        pdr_prop = self._probability_of_delayed_rejection(hastings_prop)
-        pdr_cur = self._probability_of_delayed_rejection(hastings_cur)
+        pdr_prop = self._prob_of_delayed_rejection(hastings_prop)
+        pdr_cur = self._prob_of_delayed_rejection(hastings_cur)
 
         detailed_balance = (
             (logp_prop - logp_cur)

@@ -1,6 +1,6 @@
 from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
-from bayes_kit.drhmc import PdrHmcDiag
+from bayes_kit.drhmc import PdrGhmcDiag
 import numpy as np
 import functools
 import pytest
@@ -22,7 +22,7 @@ def test_drhmc_leapfrog_num_evals(num_proposals) -> None:
     model.log_density = _call_counter(model.log_density)
     model.log_density_gradient = _call_counter(model.log_density_gradient)
 
-    drhmc = PdrHmcDiag(model, steps=10, stepsize=0.25, num_proposals=num_proposals)
+    drhmc = PdrGhmcDiag(model, steps=10, stepsize=0.25, num_proposals=num_proposals)
     drhmc.accept = _call_counter(drhmc.accept)
     _ = drhmc.sample()
 
@@ -32,7 +32,8 @@ def test_drhmc_leapfrog_num_evals(num_proposals) -> None:
     assert model.log_density.calls == 1 + drhmc.accept.calls
     # Expect one call to log_density_gradient per leapfrog step, plus one for initial/final half step
     assert (
-        model.log_density_gradient.calls == (drhmc._steps_list[0] + 1) * drhmc.accept.calls
+        model.log_density_gradient.calls
+        == (drhmc._steps_list[0] + 1) * drhmc.accept.calls
     )
 
 
@@ -44,7 +45,7 @@ def test_drhmc_std_normal_adaptive(adaptivity_factor) -> None:
 
     stepsize = lambda k: 0.25 * (adaptivity_factor**-k)
     steps = lambda k: 10 * (adaptivity_factor**k)
-    drhmc = PdrHmcDiag(model, steps=steps, stepsize=stepsize, init=init)
+    drhmc = PdrGhmcDiag(model, steps=steps, stepsize=stepsize, init=init)
 
     M = 10000
     draws = np.array([drhmc.sample()[0] for _ in range(M)])
@@ -58,10 +59,11 @@ def test_drhmc_std_normal_adaptive(adaptivity_factor) -> None:
 
 def test_drhmc_diag_repr() -> None:
     model = StdNormal()
-    init = np.random.normal(loc=0, scale=1, size=[1])
+    rng = np.random.default_rng(seed=123)
+    init = rng.normal(size=model.dims())
 
-    drhmc_1 = PdrHmcDiag(model, steps=10, stepsize=0.25, init=init, seed=123)
-    drhmc_2 = PdrHmcDiag(model, steps=10, stepsize=0.25, init=init, seed=123)
+    drhmc_1 = PdrGhmcDiag(model, steps=10, stepsize=0.25, init=init, seed=123)
+    drhmc_2 = PdrGhmcDiag(model, steps=10, stepsize=0.25, init=init, seed=123)
 
     M = 25
     draws_1 = np.array([drhmc_1.sample()[0] for _ in range(M)])
@@ -77,7 +79,7 @@ def test_drhmc_binom_adaptive(adaptivity_factor) -> None:
 
     stepsize = lambda k: 0.08 * (adaptivity_factor**-k)
     steps = lambda k: 3 * (adaptivity_factor**k)
-    drhmc = PdrHmcDiag(model, stepsize=stepsize, steps=steps, init=init)
+    drhmc = PdrGhmcDiag(model, stepsize=stepsize, steps=steps, init=init)
 
     M = 800
     draws = model.constrain_draws(np.array([drhmc.sample()[0] for _ in range(M)]))
@@ -105,10 +107,10 @@ def test_drhmc_invalid_stepsize(init_stepsize) -> None:
     steps = lambda k: 10 * (adaptivity_factor**k)
 
     with pytest.raises(ValueError) as excinfo:
-        drhmc = PdrHmcDiag(model, steps=steps, stepsize=stepsize, init=init)
+        drhmc = PdrGhmcDiag(model, steps=steps, stepsize=stepsize, init=init)
         M = 10000
         draws = np.array([drhmc.sample()[0] for _ in range(M)])
-        
+
     assert (
         str(excinfo.value)
         == f"stepsize must be positive, but found stepsize of {init_stepsize}"
@@ -126,7 +128,7 @@ def test_drhmc_invalid_steps(init_steps) -> None:
     steps = lambda k: init_steps * (adaptivity_factor**k)
 
     with pytest.raises((TypeError, ValueError)) as excinfo:
-        drhmc = PdrHmcDiag(model, steps=steps, stepsize=stepsize, init=init)
+        drhmc = PdrGhmcDiag(model, steps=steps, stepsize=stepsize, init=init)
         M = 10000
         draws = np.array([drhmc.sample()[0] for _ in range(M)])
 
