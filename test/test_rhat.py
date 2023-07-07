@@ -1,4 +1,4 @@
-from typing import List, Sequence
+from typing import Sequence
 
 import numpy as np
 import pytest as pt
@@ -13,8 +13,9 @@ from bayes_kit.rhat import (
     split_rhat,
 )
 
+Chains = Sequence[Sequence[float]]
 
-def rhat_expected(chains_in: Sequence[Sequence[float]]) -> float:
+def rhat_expected(chains_in: Chains) -> float:
     # uses brute force definition from BDA3
     chains = [np.asarray(c) for c in chains_in]
     psij_bar = [np.mean(c) for c in chains]
@@ -50,7 +51,7 @@ def test_rhat_ragged() -> None:
     np.testing.assert_allclose(rhat_expected(chains), rhat(chains), atol=0.1, rtol=0.2)
 
 
-def rhat_throws(chains: List[List[float]]) -> None:
+def rhat_throws(chains: Chains) -> None:
     with pt.raises(ValueError):
         rhat(chains)
 
@@ -89,7 +90,7 @@ def test_split_rhat() -> None:
     )
 
 
-def split_rhat_throws(chains: List[List[float]]) -> None:
+def split_rhat_throws(chains: Chains) -> None:
     with pt.raises(ValueError):
         split_rhat(chains)
 
@@ -104,7 +105,7 @@ def test_split_rhat_at_least_four_elements_per_chain() -> None:
     split_rhat_throws([[1, 2, 3], [1, 2, 3, 4]])
 
 
-def rank_chains_equal(ranks: List[List[float]], chains: List[List[float]]) -> None:
+def rank_chains_equal(ranks: Chains, chains: Chains) -> None:
     np.testing.assert_equal(ranks, rank_chains(chains))
 
 
@@ -114,8 +115,14 @@ def test_rank_chains() -> None:
     rank_chains_equal([[1, 2]], [[2.3, 4.9]])
     rank_chains_equal([[2, 3, 1]], [[3.9, 5.2, 2.1]])
     rank_chains_equal([[2], [1]], [[4.2], [1.9]])
-    rank_chains_equal([[2, 3], [1, 4]], [[4.2, 5.7], [1.9, 12.2]])
-    rank_chains_equal([[2, 3], [5, 4], [1, 6]], [[4.2, 5.7], [7.2, 6.1], [-12.9, 107]])
+    rank_chains_equal(
+        [[2, 3], [1, 4]],
+        [[4.2, 5.7], [1.9, 12.2]],
+    )
+    rank_chains_equal(
+        [[2, 3], [5, 4], [1, 6]],
+        [[4.2, 5.7], [7.2, 6.1], [-12.9, 107]],
+    )
 
 
 def rank_norm(r: float, S: float) -> float:
@@ -123,7 +130,7 @@ def rank_norm(r: float, S: float) -> float:
 
 
 def rank_normalize_chains_close(
-    ranks: List[List[float]], chains: List[List[float]]
+    ranks: Chains, chains: Chains
 ) -> None:
     np.testing.assert_equal(ranks, rank_normalize_chains(chains))
 
@@ -150,7 +157,7 @@ def test_rank_normalize_chains() -> None:
     rank_normalize_chains_close([[rn34, rn24], [rn14, rn44]], [[3.9, 3.1], [2.2, 5.9]])
 
 
-def rank_normalized_rhat_throws(chains: List[List[float]]) -> None:
+def rank_normalized_rhat_throws(chains: Chains) -> None:
     with pt.raises(ValueError):
         rank_normalized_rhat(chains)
 
@@ -165,7 +172,7 @@ def test_rank_normalized_rhat_at_least_four_elemenets_per_chain() -> None:
 
 
 def rank_normalized_rhat_close(
-    ranks: List[List[float]], chains: List[List[float]]
+    ranks: Chains, chains: Chains
 ) -> None:
     np.testing.assert_allclose(split_rhat(ranks), rank_normalized_rhat(chains))
 
