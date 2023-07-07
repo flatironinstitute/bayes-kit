@@ -1,8 +1,9 @@
 from typing import Callable, Optional, Tuple
-from numpy.typing import NDArray
-import numpy as np
 
-from .model_types import LogDensityModel
+import numpy as np
+from numpy.typing import NDArray
+
+from .typing import LogDensityModel
 
 
 class Stretcher:

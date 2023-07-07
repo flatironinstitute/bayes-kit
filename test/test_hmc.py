@@ -1,35 +1,38 @@
+import functools
 from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
-from bayes_kit.hmc import HMCDiag
+from typing import Any
+
 import numpy as np
-import functools
 import pytest
 
+from bayes_kit.hmc import HMCDiag
 
-def _call_counter(f):
+
+def _call_counter(f: Any) -> Any:
     @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        wrapper.calls += 1
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        wrapper.calls += 1  # type: ignore
         return f(*args, **kwargs)
 
-    wrapper.calls = 0
+    wrapper.calls = 0  # type: ignore
     return wrapper
 
 
 @pytest.mark.parametrize("steps", [0, 1, 10])
-def test_hmc_leapfrog_num_evals(steps) -> None:
+def test_hmc_leapfrog_num_evals(steps: int) -> None:
     # Expect that HMC.leapfrog calls log_density only once per step
     model = StdNormal()
-    model.log_density = _call_counter(model.log_density)
-    model.log_density_gradient = _call_counter(model.log_density_gradient)
+    model.log_density = _call_counter(model.log_density)  # type: ignore
+    model.log_density_gradient = _call_counter(model.log_density_gradient)  # type: ignore
 
     hmc = HMCDiag(model, steps=steps, stepsize=0.25)
     _ = hmc.sample()
 
     # Expect one call to log_density before leapfrog and one after
-    assert model.log_density.calls == 2
+    assert model.log_density.calls == 2  # type: ignore
     # Expect one call to log_density_gradient per leapfrog step, plus one for initial/final half step
-    assert model.log_density_gradient.calls == hmc._steps + 1
+    assert model.log_density_gradient.calls == hmc._steps + 1  # type: ignore
 
 
 def test_hmc_diag_std_normal() -> None:

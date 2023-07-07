@@ -9,3 +9,6 @@ module = [
     'scipy.special'
     ]
 ignore_missing_imports = true
+
+[tool.isort]
+profile = "black"

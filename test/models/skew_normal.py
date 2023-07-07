@@ -1,16 +1,16 @@
-import numpy.typing as npt
+from typing import Optional, Union
+
 import numpy as np
 from scipy import stats as sst
-from typing import Optional, Union
-from numpy.typing import NDArray
-from numpy import float64
+
+from bayes_kit.typing import VectorType
 
 
 class SkewNormal:
     def __init__(
         self,
         a: float = 4,
-        loc: Optional[Union[float, NDArray[float64]]] = None,
+        loc: Optional[Union[float, VectorType]] = None,
         finite_difference_epsilon: float = 0.000001,
     ) -> None:
         self.a = a
@@ -20,12 +20,10 @@ class SkewNormal:
     def dims(self) -> int:
         return 1
 
-    def log_density(self, params_unc: npt.NDArray[np.float64]) -> float:
+    def log_density(self, params_unc: VectorType) -> float:
         return sst.skewnorm.logpdf(params_unc, self.a, loc=self._loc)[0]  # type: ignore # scipy is not typed
 
-    def log_density_gradient(
-        self, params_unc: npt.NDArray[np.float64]
-    ) -> tuple[float, npt.NDArray[np.float64]]:
+    def log_density_gradient(self, params_unc: VectorType) -> tuple[float, VectorType]:
         lp = self.log_density(params_unc)
         lp_plus_epsilon = self.log_density(params_unc + self._epsilon)
         return lp, np.array([(lp - lp_plus_epsilon) / self._epsilon])

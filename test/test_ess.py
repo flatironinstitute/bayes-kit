@@ -1,12 +1,17 @@
 import numpy as np
-import bayes_kit as bk
 import pytest as pt
-from .test_iat import sample_ar1, integrated_autocorr_time_ar1
 
-def expected_ess_ar1(rho, N):
+import bayes_kit as bk
+from bayes_kit.typing import VectorType
+
+from .test_iat import integrated_autocorr_time_ar1, sample_ar1
+
+
+def expected_ess_ar1(rho: float, N: int) -> float:
     return N / integrated_autocorr_time_ar1(rho)
 
-def run_ess_test_ar1(rho, N):
+
+def run_ess_test_ar1(rho: float, N: int) -> None:
     v = sample_ar1(rho, N)
     E_ess = expected_ess_ar1(rho, N)
 
@@ -20,13 +25,13 @@ def run_ess_test_ar1(rho, N):
     np.testing.assert_allclose(E_ess, hat_ess3, atol=N, rtol=0.1)
 
 
-def test_ess_ar1():
+def test_ess_ar1() -> None:
     # includes correlated (rho > 0), uncorrelated (rho = 0), and antianti-correlated tests (rho < 0)
     for rho in np.arange(-0.5, 0.5, step=0.2):
         run_ess_test_ar1(rho, 20_000)
 
 
-def test_ess_independent():
+def test_ess_independent() -> None:
     N = 10_000
     y = np.random.normal(size=N)
     hat_ess = bk.ess(y)
@@ -34,7 +39,7 @@ def test_ess_independent():
     np.testing.assert_allclose(E_ess, hat_ess, rtol=0.1)
 
 
-def test_ess_exceptions():
+def test_ess_exceptions() -> None:
     for n in range(4):
         v = sample_ar1(0.5, n)
         with pt.raises(ValueError):
@@ -43,4 +48,3 @@ def test_ess_exceptions():
             bk.ess_imse(v)
         with pt.raises(ValueError):
             bk.ess_ipse(v)
-
