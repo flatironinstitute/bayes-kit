@@ -180,12 +180,12 @@ def test_metropolis_reproducible() -> None:
 
     # reinitialize proposal generator for each model
     proposal_generator = np.random.default_rng(seed=12345)
-    proposal_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)  # type: ignore
+    proposal_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)
     metropolis_2 = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1848)
     draws_2 = np.array([metropolis_2.sample()[0] for _ in range(M)])
 
     proposal_generator = np.random.default_rng(seed=12345)
-    proposal_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)  # type: ignore
+    proposal_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)
     metropolis_3 = Metropolis(model, proposal_fn=proposal_fn, init=init, seed=1912)
     draws_3 = np.array([metropolis_3.sample()[0] for _ in range(M)])
 
@@ -273,7 +273,7 @@ def test_metropolis_hastings_next_trajectory_matches_calling_sample() -> None:
     draws_1 = np.array([mh1.sample()[0] for _ in range(M)])
 
     proposal_generator = np.random.default_rng(seed=123)
-    p_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)  # type: ignore
+    p_fn = lambda theta: proposal_generator.normal(loc=theta, scale=4)
     mh2 = MetropolisHastings(
         model, proposal_fn=p_fn, transition_lp_fn=x_fn, init=init, seed=996
     )

@@ -1,9 +1,8 @@
 from typing import List, Sequence, Union
 
 import numpy as np
-from typing import Union, Sequence, List
-from numpy.typing import NDArray
 import scipy as sp
+from numpy.typing import NDArray
 
 FloatType = np.float64
 VectorType = NDArray[FloatType]

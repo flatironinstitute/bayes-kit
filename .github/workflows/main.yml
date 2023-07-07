@@ -31,9 +31,10 @@ jobs:
       - name: Formatting and type checking
         if: matrix.python-version == '3.11'
         run: |
-          pip install mypy black
+          pip install mypy black isort
+          isort --check-only .
           black --check .
-          mypy --strict bayes_kit/ # TODO make "." to also typecheck tests.
+          mypy --strict .
 
       - name: Run tests
         run: |

@@ -1,25 +1,22 @@
 import numpy as np
+import numpy.typing as npt
 import pytest as pt
 
-import bayes_kit as bk
 from bayes_kit.autocorr import autocorr
 
+from .test_iat import sample_ar1
 
-def test_autocorr_fixed():
+VectorType = npt.NDArray[np.float64]
+
+
+def test_autocorr_fixed() -> None:
     y = np.asarray([1, 0, 0, 0])
     ac = autocorr(y)
     ac_expected = np.asarray([1.000, -0.083, -0.167, -0.250])
     np.testing.assert_allclose(ac_expected, ac, atol=0.001, rtol=0.001)
 
 
-def sample_ar1(rho, N):
-    z = np.random.normal(size=N)
-    for n in range(1, N):
-        z[n] += rho * z[n - 1]
-    return z
-
-
-def autocorr_ar1(rho, N):
+def autocorr_ar1(rho: float, N: int) -> VectorType:
     ac = np.zeros(N)
     ac[0] = 1
     for n in range(1, N):
@@ -27,7 +24,7 @@ def autocorr_ar1(rho, N):
     return ac
 
 
-def test_autocorr_ar1():
+def test_autocorr_ar1() -> None:
     N = 3000
     y = sample_ar1(0.5, N)
     ac = autocorr(y)
@@ -35,7 +32,7 @@ def test_autocorr_ar1():
     np.testing.assert_allclose(ac_expected[0:20], ac[0:20], atol=0.1, rtol=0.1)
 
 
-def test_autocorr_independent():
+def test_autocorr_independent() -> None:
     N = 3000
     y = np.random.normal(size=N)
     ac = autocorr(y)
@@ -44,9 +41,9 @@ def test_autocorr_independent():
     np.testing.assert_allclose(ac_expected[0:20], ac[0:20], atol=0.1, rtol=0.1)
 
 
-def test_autocorr_exceptions():
+def test_autocorr_exceptions() -> None:
     with pt.raises(ValueError):
-        bk.autocorr([])
+        autocorr([])
     with pt.raises(ValueError):
-        bk.autocorr([1.1])
-    bk.autocorr([1.1, 1.2])
+        autocorr([1.1])
+    autocorr([1.1, 1.2])
