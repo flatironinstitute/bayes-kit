@@ -1,12 +1,10 @@
 import numpy as np
-import numpy.typing as npt
 import pytest as pt
 
 from bayes_kit.autocorr import autocorr
+from bayes_kit.typing import VectorType
 
 from .test_iat import sample_ar1
-
-VectorType = npt.NDArray[np.float64]
 
 
 def test_autocorr_fixed() -> None:

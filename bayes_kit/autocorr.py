@@ -1,11 +1,6 @@
-from typing import List, Sequence, Union
-
 import numpy as np
-import numpy.typing as npt
 
-FloatType = np.float64
-VectorType = npt.NDArray[FloatType]
-ChainType = Union[Sequence[float], VectorType]
+from .typing import ChainType, VectorType
 
 
 def autocorr(chain: ChainType) -> VectorType:

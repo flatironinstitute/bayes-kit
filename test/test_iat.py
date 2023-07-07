@@ -1,13 +1,11 @@
 from typing import List
 
 import numpy as np
-import numpy.typing as npt
 import pytest as pt
 
 import bayes_kit as bk
 from bayes_kit.iat import _end_pos_pairs
-
-VectorType = npt.NDArray[np.float64]
+from bayes_kit.typing import VectorType
 
 
 def sample_ar1(rho: float, N: int) -> VectorType:

@@ -2,20 +2,19 @@ from typing import Any, List
 from unittest.mock import Mock
 
 import numpy as np
-from numpy.typing import NDArray
 
 from bayes_kit.hmc import HMCDiag
 from bayes_kit.mala import MALA
 from bayes_kit.metropolis import Metropolis, MetropolisHastings
-from bayes_kit.model_types import HessianModel
+from bayes_kit.typing import VectorType
 
 
-def assert_not_empty_array(a: NDArray[np.float64]) -> None:
+def assert_not_empty_array(a: VectorType) -> None:
     with np.testing.assert_raises(AssertionError):
         np.testing.assert_array_equal(a, np.array([]))
 
 
-def make_models(init: NDArray[np.float64], dims: int = 1) -> List[Any]:
+def make_models(init: VectorType, dims: int = 1) -> List[Any]:
     # For the purposes of this (and future) tests, we only care about the model's dimensions.
     mock_model: Any = Mock()
     mock_model.dims = Mock(return_value=dims)

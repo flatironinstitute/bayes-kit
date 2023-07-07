@@ -1,12 +1,9 @@
 from typing import Iterator, Optional, Union
 
 import numpy as np
-from numpy.typing import NDArray
 
 from .metropolis import metropolis_hastings_accept_test
-from .model_types import GradModel
-
-Draw = tuple[NDArray[np.float64], float]
+from .typing import DrawAndLogP, GradModel, Seed, VectorType
 
 # Note: MALA is an instance of a Metropolis-Hastings algorithm, but we do not
 # implement it here as a subclass in order to cache gradient calls.
@@ -19,8 +16,8 @@ class MALA:
         self,
         model: GradModel,
         epsilon: float,
-        init: Optional[NDArray[np.float64]] = None,
-        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
+        init: Optional[VectorType] = None,
+        seed: Optional[Seed] = None,
     ):
         self._model = model
         self._epsilon = epsilon
@@ -34,13 +31,13 @@ class MALA:
         self._log_p_theta, logpgrad = self._model.log_density_gradient(self._theta)
         self._log_p_grad_theta = np.asanyarray(logpgrad)
 
-    def __iter__(self) -> Iterator[Draw]:
+    def __iter__(self) -> Iterator[DrawAndLogP]:
         return self
 
-    def __next__(self) -> Draw:
+    def __next__(self) -> DrawAndLogP:
         return self.sample()
 
-    def sample(self) -> Draw:
+    def sample(self) -> DrawAndLogP:
         theta_prop = (
             self._theta
             + self._epsilon * self._log_p_grad_theta
@@ -70,9 +67,9 @@ class MALA:
 
     def _proposal_log_density(
         self,
-        theta_prime: NDArray[np.float64],
-        theta: NDArray[np.float64],
-        grad_theta: NDArray[np.float64],
+        theta_prime: VectorType,
+        theta: VectorType,
+        grad_theta: VectorType,
     ) -> float:
         """
         Conditional log probability of the proposed parameters
