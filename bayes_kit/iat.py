@@ -1,3 +1,5 @@
+from typing import Sequence, Union
+
 import numpy as np
 import numpy.typing as npt
 
@@ -7,7 +9,7 @@ FloatType = np.float64
 VectorType = npt.NDArray[FloatType]
 
 
-def _end_pos_pairs(acor: VectorType) -> int:
+def _end_pos_pairs(acor: Union[Sequence[float], VectorType]) -> int:
     """
     Return the index 1 past the last positive pair of autocorrelations
     starting on an even index.  The sequence `acor` should contain

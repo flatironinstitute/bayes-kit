@@ -1,8 +1,7 @@
-from typing import List, Union
+from typing import List, Sequence, Union
 
 import numpy as np
 import numpy.typing as npt
-from typing import Union, Sequence
 
 FloatType = np.float64
 VectorType = npt.NDArray[FloatType]
