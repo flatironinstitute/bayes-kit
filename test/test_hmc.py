@@ -34,6 +34,7 @@ def test_hmc_leapfrog_num_evals(steps) -> None:
 
 def test_hmc_diag_std_normal() -> None:
     model = StdNormal()
+    
     # init with draw from posterior
     init = np.random.normal(loc=0, scale=1, size=[1])
     hmc = HMCDiag(model, steps=10, stepsize=0.25, init=init)
