@@ -15,10 +15,11 @@ from bayes_kit.rhat import (
 
 Chains = Sequence[Sequence[float]]
 
+
 def rhat_expected(chains_in: Chains) -> float:
     # uses brute force definition from BDA3
     chains = [np.asarray(c) for c in chains_in]
-    psij_bar = [np.mean(c) for c in chains]
+    psij_bar = np.array([np.mean(c) for c in chains])
     psi_bar = np.mean(psij_bar)
     M = len(chains)
     N = len(chains[0])
@@ -129,9 +130,7 @@ def rank_norm(r: float, S: float) -> float:
     return sp.stats.norm.ppf((r - 0.325) / (S - 0.25))  # type: ignore
 
 
-def rank_normalize_chains_close(
-    ranks: Chains, chains: Chains
-) -> None:
+def rank_normalize_chains_close(ranks: Chains, chains: Chains) -> None:
     np.testing.assert_equal(ranks, rank_normalize_chains(chains))
 
 
@@ -171,9 +170,7 @@ def test_rank_normalized_rhat_at_least_four_elemenets_per_chain() -> None:
     rank_normalized_rhat_throws([[1, 2, 3], [4]])
 
 
-def rank_normalized_rhat_close(
-    ranks: Chains, chains: Chains
-) -> None:
+def rank_normalized_rhat_close(ranks: Chains, chains: Chains) -> None:
     np.testing.assert_allclose(split_rhat(ranks), rank_normalized_rhat(chains))
 
 

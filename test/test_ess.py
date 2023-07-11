@@ -1,12 +1,10 @@
 import numpy as np
-import numpy.typing as npt
 import pytest as pt
 
 import bayes_kit as bk
+from bayes_kit.typing import VectorType
 
 from .test_iat import integrated_autocorr_time_ar1, sample_ar1
-
-VectorType = npt.NDArray[np.float64]
 
 
 def expected_ess_ar1(rho: float, N: int) -> float:

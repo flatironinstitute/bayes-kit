@@ -1,11 +1,8 @@
-from typing import Iterator, Optional, Union
+from typing import Iterator, Optional
 
 import numpy as np
-from numpy.typing import NDArray
 
-from .model_types import GradModel
-
-Draw = tuple[NDArray[np.float64], float]
+from .typing import DrawAndLogP, GradModel, Seed, VectorType
 
 
 class HMCDiag:
@@ -14,9 +11,9 @@ class HMCDiag:
         model: GradModel,
         stepsize: float,
         steps: int,
-        metric_diag: Optional[NDArray[np.float64]] = None,
-        init: Optional[NDArray[np.float64]] = None,
-        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
+        metric_diag: Optional[VectorType] = None,
+        init: Optional[VectorType] = None,
+        seed: Optional[Seed] = None,
     ):
         self._model = model
         self._dim = self._model.dims()
@@ -30,19 +27,19 @@ class HMCDiag:
             else self._rng.normal(size=self._dim)
         )
 
-    def __iter__(self) -> Iterator[Draw]:
+    def __iter__(self) -> Iterator[DrawAndLogP]:
         return self
 
-    def __next__(self) -> Draw:
+    def __next__(self) -> DrawAndLogP:
         return self.sample()
 
-    def joint_logp(self, theta: NDArray[np.float64], rho: NDArray[np.float64]) -> float:
-        adj: float = -0.5 * np.dot(rho, self._metric * rho)
-        return self._model.log_density(theta) + adj
+    def joint_logp(self, theta: VectorType, rho: VectorType) -> float:
+        adj: float = 0.5 * np.dot(rho, self._metric * rho)
+        return self._model.log_density(theta) - adj
 
     def leapfrog(
-        self, theta: NDArray[np.float64], rho: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        self, theta: VectorType, rho: VectorType
+    ) -> tuple[VectorType, VectorType]:
         theta = np.array(theta, copy=True)
         _, grad = self._model.log_density_gradient(theta)
         rho_mid = rho - 0.5 * self._stepsize * np.multiply(self._metric, grad)
@@ -53,7 +50,7 @@ class HMCDiag:
         rho = rho_mid + 0.5 * self._stepsize * np.multiply(self._metric, grad)
         return (theta, rho)
 
-    def sample(self) -> Draw:
+    def sample(self) -> DrawAndLogP:
         rho = self._rng.normal(size=self._dim)
         logp = self.joint_logp(self._theta, rho)
         # do not reverse momentum because it is refreshed

@@ -6,7 +6,6 @@ from unittest.mock import Mock
 
 import numpy as np
 import scipy.stats as sst
-from numpy.typing import NDArray
 
 from bayes_kit.metropolis import (
     Metropolis,
@@ -14,6 +13,7 @@ from bayes_kit.metropolis import (
     metropolis_accept_test,
     metropolis_hastings_accept_test,
 )
+from bayes_kit.typing import VectorType
 
 
 def test_metropolis_accept_test_accepts_more_likely_proposal() -> None:
@@ -147,7 +147,9 @@ def test_metropolis_hastings_skew_normal() -> None:
     # a test that has tight tolerance on a known value in a tolerable runtime seems most likely to
     # actually inform us if any bugs are introduced in the code.
     gen = np.random.default_rng(seed=1701)
-    init: NDArray[np.float64] = sst.skewnorm.rvs(skewness_a, size=[1], random_state=gen)
+    init: VectorType = sst.skewnorm.rvs(skewness_a, size=[1], random_state=gen).astype(
+        np.float64
+    )
     p_fn = lambda theta: np.array(
         [sst.skewnorm.rvs(skewness_a, loc=theta, random_state=gen)]
     )
@@ -199,7 +201,7 @@ def test_metropolis_reproducible() -> None:
 # This winds up being more stable than rewriting the lambda directly in the test fn body.
 def skewnorm_proposal_fn_factory(
     skewness: float, gen: np.random.Generator
-) -> Callable[[np.typing.NDArray[np.float64]], np.typing.ArrayLike]:
+) -> Callable[[VectorType], np.typing.ArrayLike]:
     fn = lambda t: np.array([sst.skewnorm.rvs(skewness, loc=t, random_state=gen)])
     return fn
 
@@ -209,7 +211,9 @@ def test_metropolis_hastings_reproducible() -> None:
     model = SkewNormal(a=skewness_a)
     M = 50
     g = np.random.default_rng(seed=123)
-    init: NDArray[np.float64] = sst.skewnorm.rvs(skewness_a, size=[1], random_state=g)
+    init: VectorType = sst.skewnorm.rvs(skewness_a, size=[1], random_state=g).astype(
+        np.float64
+    )
     transition_lp_fn = lambda o, g: sst.skewnorm.logpdf(o, skewness_a, loc=g)[0]
 
     proposal_generator = np.random.default_rng(seed=12345)

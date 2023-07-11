@@ -1,16 +1,12 @@
-from typing import Callable, Iterator, Optional, Union
+from typing import Callable, Iterator, Optional
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike
 
-from .model_types import LogDensityModel
+from .typing import DrawAndLogP, LogDensityModel, Seed, VectorType
 
-# TODO: Add to global type definitions
-Vector = NDArray[np.float64]
-Draw = tuple[Vector, float]
 # s.b. (TO_STATE, FROM_STATE) -> log_prob (float)
-TransitionLPFn = Callable[[Vector, Vector], float]
-Seed = Union[int, np.random.BitGenerator, np.random.Generator]
+TransitionLPFn = Callable[[VectorType, VectorType], float]
 
 
 def metropolis_accept_test(
@@ -84,10 +80,10 @@ class MetropolisHastings:
     def __init__(
         self,
         model: LogDensityModel,
-        proposal_fn: Callable[[Vector], ArrayLike],
+        proposal_fn: Callable[[VectorType], ArrayLike],
         transition_lp_fn: TransitionLPFn,
         *,
-        init: Optional[Vector] = None,
+        init: Optional[VectorType] = None,
         seed: Optional[Seed] = None,
     ):
         self._model = model
@@ -102,32 +98,32 @@ class MetropolisHastings:
         )
         self._log_p_theta = self._model.log_density(self._theta)
 
-    def __iter__(self) -> Iterator[Draw]:
+    def __iter__(self) -> Iterator[DrawAndLogP]:
         return self
 
-    def __next__(self) -> Draw:
+    def __next__(self) -> DrawAndLogP:
         return self.sample()
 
-    def sample(self) -> Draw:
+    def sample(self) -> DrawAndLogP:
         proposal, lp_proposal = self._propose()
         accepted = self._accept_test(lp_proposal, proposal)
         if accepted:
             self._update_theta(proposal, lp_proposal)
         return (self._theta, self._log_p_theta)
 
-    def _propose(self) -> Draw:
+    def _propose(self) -> DrawAndLogP:
         untyped_proposed_theta = np.asanyarray(
             self._proposal_fn(self._theta), dtype=np.float64
         )
-        proposed_theta: NDArray[np.float64] = untyped_proposed_theta
+        proposed_theta: VectorType = untyped_proposed_theta
         lp_proposed_theta = self._model.log_density(proposed_theta)
         return (proposed_theta, lp_proposed_theta)
 
-    def _update_theta(self, theta: Vector, log_p_theta: float) -> None:
+    def _update_theta(self, theta: VectorType, log_p_theta: float) -> None:
         self._theta = theta
         self._log_p_theta = log_p_theta
 
-    def _accept_test(self, lp_proposal: float, proposal: Vector) -> bool:
+    def _accept_test(self, lp_proposal: float, proposal: VectorType) -> bool:
         lp_forward_transition = self._transition_lp_fn(proposal, self._theta)
         lp_reverse_transition = self._transition_lp_fn(self._theta, proposal)
         return metropolis_hastings_accept_test(
@@ -143,9 +139,9 @@ class Metropolis(MetropolisHastings):
     def __init__(
         self,
         model: LogDensityModel,
-        proposal_fn: Callable[[Vector], ArrayLike],
+        proposal_fn: Callable[[VectorType], ArrayLike],
         *,
-        init: Optional[Vector] = None,
+        init: Optional[VectorType] = None,
         seed: Optional[Seed] = None,
     ):
         # This transition function will never be used--it isn't needed for Metropolis,
@@ -155,5 +151,5 @@ class Metropolis(MetropolisHastings):
         super().__init__(model, proposal_fn, dummy_transition_fn, init=init, seed=seed)
 
     # 'proposal' isn't used, but we need signature consistency to override the parent method
-    def _accept_test(self, lp_proposal: float, proposal: Vector) -> bool:
+    def _accept_test(self, lp_proposal: float, proposal: VectorType) -> bool:
         return metropolis_accept_test(lp_proposal, self._log_p_theta, self._rng)

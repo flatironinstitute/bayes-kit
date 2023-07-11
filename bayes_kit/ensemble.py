@@ -3,7 +3,7 @@ from typing import Callable, Optional, Tuple
 import numpy as np
 from numpy.typing import NDArray
 
-from .model_types import LogDensityModel
+from .typing import LogDensityModel
 
 
 class Stretcher:

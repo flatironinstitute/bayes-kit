@@ -1,12 +1,7 @@
 from typing import Sequence, Union
 
-import numpy as np
-import numpy.typing as npt
-
-from bayes_kit.autocorr import autocorr
-
-FloatType = np.float64
-VectorType = npt.NDArray[FloatType]
+from .autocorr import autocorr
+from .typing import FloatType, VectorType
 
 
 def _end_pos_pairs(acor: Union[Sequence[float], VectorType]) -> int:

@@ -1,15 +1,12 @@
-from typing import List, Sequence, Union
+from typing import List, Sequence
 
 import numpy as np
 import scipy as sp
-from numpy.typing import NDArray
 
-FloatType = np.float64
-VectorType = NDArray[FloatType]
-SeqType = Union[Sequence[float], VectorType]
+from .typing import ChainType, FloatType, VectorType
 
 
-def split_chains(chains: Sequence[SeqType]) -> List[SeqType]:
+def split_chains(chains: Sequence[ChainType]) -> List[ChainType]:
     """Return a list of the input chains split in half.  The result will
     be a list twice as long as the input.  For odd sized chains, the
     first half will be one element longer.  For example,
@@ -27,7 +24,7 @@ def split_chains(chains: Sequence[SeqType]) -> List[SeqType]:
     return [arr for chain in chains for arr in np.array_split(chain, 2)]
 
 
-def rank_chains(chains: Sequence[SeqType]) -> List[VectorType]:
+def rank_chains(chains: Sequence[ChainType]) -> List[VectorType]:
     """
     Returns a copy of the included Markov chains with all values
     transformed to ranks.  Ranks are ascending and start at 1.
@@ -62,7 +59,7 @@ def rank_chains(chains: Sequence[SeqType]) -> List[VectorType]:
     return reshaped_arrays
 
 
-def rank_normalize_chains(chains: Sequence[SeqType]) -> List[List[float]]:
+def rank_normalize_chains(chains: Sequence[ChainType]) -> List[List[float]]:
     """Return the rank-normalized version of the input chains.
 
     Rank normalization maps the ranks to the range (0, 1) and then returns
@@ -111,7 +108,7 @@ def rank_normalize_chains(chains: Sequence[SeqType]) -> List[List[float]]:
     return result
 
 
-def rhat(chains: Sequence[SeqType]) -> FloatType:
+def rhat(chains: Sequence[ChainType]) -> FloatType:
     """Return the potential scale reduction factor (R-hat) for a list of
     Markov chains.
 
@@ -174,7 +171,7 @@ def rhat(chains: Sequence[SeqType]) -> FloatType:
     return r_hat
 
 
-def split_rhat(chains: Sequence[SeqType]) -> FloatType:
+def split_rhat(chains: Sequence[ChainType]) -> FloatType:
     """Return the potential scale reduction factor (R-hat) for a list of
     Markov chains consisting of each of the input chains split in half.
 
@@ -205,7 +202,7 @@ def split_rhat(chains: Sequence[SeqType]) -> FloatType:
     return rhat(split_chains(chains))
 
 
-def rank_normalized_rhat(chains: Sequence[SeqType]) -> FloatType:
+def rank_normalized_rhat(chains: Sequence[ChainType]) -> FloatType:
     """Return the rank-normalized R-hat for the specified chains.
     Rank normalized r-hat replaces each value in the chains with its
     rank, applies a shifted inverse standard normal cdf, and

@@ -1,12 +1,5 @@
-import numpy as np
-import numpy.typing as npt
-
-import bayes_kit.autocorr as autocorr
-from bayes_kit.iat import iat, iat_imse, iat_ipse
-
-FloatType = np.float64
-IntType = np.int64
-VectorType = npt.NDArray[FloatType]
+from .iat import iat, iat_imse, iat_ipse
+from .typing import FloatType, VectorType
 
 
 def ess_ipse(chain: VectorType) -> FloatType:
