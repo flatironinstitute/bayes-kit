@@ -1,13 +1,13 @@
 import numpy as np
 import numpy.typing as npt
-import bayes_kit.autocorr as autocorr
+
+from bayes_kit.autocorr import autocorr
 
 FloatType = np.float64
-IntType = np.int64
 VectorType = npt.NDArray[FloatType]
 
 
-def _end_pos_pairs(acor: VectorType) -> IntType:
+def _end_pos_pairs(acor: VectorType) -> int:
     """
     Return the index 1 past the last positive pair of autocorrelations
     starting on an even index.  The sequence `acor` should contain
@@ -91,7 +91,8 @@ def iat_ipse(chain: VectorType) -> FloatType:
         raise ValueError(f"ess requires len(chains) >= 4, but {len(chain)=}")
     acor = autocorr(chain)
     n = _end_pos_pairs(acor)
-    return 2 * acor[0:n].sum() - 1
+    iat: FloatType = 2 * acor[0:n].sum() - 1
+    return iat
 
 
 def iat_imse(chain: VectorType) -> FloatType:
@@ -126,7 +127,7 @@ def iat_imse(chain: VectorType) -> FloatType:
         raise ValueError(f"iat requires len(chains) >=4, but {len(chain) = }")
     acor = autocorr(chain)
     n = _end_pos_pairs(acor)
-    prev_min = acor[0] + acor[1]
+    prev_min: FloatType = acor[0] + acor[1]
     acor_sum = prev_min
     i = 2
     while i + 1 < n:

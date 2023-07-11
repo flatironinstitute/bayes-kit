@@ -1,6 +1,7 @@
 from typing import Callable, Optional, Tuple
-from numpy.typing import NDArray
+
 import numpy as np
+from numpy.typing import NDArray
 
 from .model_types import LogDensityModel
 

@@ -1,14 +1,17 @@
 import numpy as np
 import numpy.typing as npt
+from typing import Union, Sequence
 
 FloatType = np.float64
 VectorType = npt.NDArray[FloatType]
+ChainType = Union[Sequence[float], VectorType]
 
-def autocorr(chain: VectorType) -> VectorType:
+
+def autocorr(chain: ChainType) -> VectorType:
     """Return sample autocorrelations at all lags from 0 to the length
     of the sequence minus 1 for the specified sequence.  The returned
     vector will thus be the same size as the input vector.
-    
+
     Algorithmically, this function calls NumPy's fast Fourier transform
     and inverse fast Fourier transforms.
 
@@ -23,6 +26,7 @@ def autocorr(chain: VectorType) -> VectorType:
     """
     if len(chain) < 2:
         raise ValueError(f"autocorr requires len(chain) >= 2, but {len(chain)=}")
+    chain = np.asarray(chain)
     size = 2 ** np.ceil(np.log2(2 * len(chain) - 1)).astype("int")
     var = np.var(chain)
     ndata = chain - np.mean(chain)

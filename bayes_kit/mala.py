@@ -1,6 +1,7 @@
 from typing import Iterator, Optional, Union
-from numpy.typing import NDArray
+
 import numpy as np
+from numpy.typing import NDArray
 
 from .metropolis import metropolis_hastings_accept_test
 from .model_types import GradModel

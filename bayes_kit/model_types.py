@@ -1,6 +1,7 @@
 from typing import Protocol, Tuple
-from numpy.typing import ArrayLike, NDArray
+
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 
 class LogDensityModel(Protocol):
