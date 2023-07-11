@@ -5,6 +5,7 @@ from .autocorr import autocorr
 from .ensemble import Stretcher
 from .ess import ess, ess_imse, ess_ipse
 from .hmc import HMCDiag
+from .drghmc import DrGhmcDiag
 from .iat import iat, iat_imse, iat_ipse
 from .mala import MALA
 from .metropolis import Metropolis, MetropolisHastings
@@ -13,6 +14,7 @@ from .smc import TemperedLikelihoodSMC
 
 __all__ = [
     "HMCDiag",
+    "DrGhmcDiag",
     "MALA",
     "Metropolis",
     "MetropolisHastings",
