@@ -1,10 +1,8 @@
 from typing import Iterator, Optional, Union, Callable
-from numpy.typing import NDArray
+
 import numpy as np
 
-from .model_types import GradModel
-
-Draw = tuple[NDArray[np.float64], float]
+from .typing import DrawAndLogP, GradModel, Seed, VectorType
 
 
 class DrGhmcDiag:
@@ -34,9 +32,9 @@ class DrGhmcDiag:
         model: GradModel,
         stepsize: Union[int | float, list[int | float], Callable[[int], int | float]],
         steps: Union[int, list[int], Callable[[int], int]],
-        metric_diag: Optional[NDArray[np.float64]] = None,
-        init: Optional[NDArray[np.float64]] = None,
-        seed: Union[None, int, np.random.BitGenerator, np.random.Generator] = None,
+        metric_diag: Optional[VectorType] = None,
+        init: Optional[VectorType] = None,
+        seed: Optional[Seed] = None,
         num_proposals: int = 3,
         probabilistic: bool = True,
         dampening: float = 1.0,
@@ -214,23 +212,23 @@ class DrGhmcDiag:
         else:
             raise TypeError("steps must be None, int, list, or callable")
 
-    def __iter__(self) -> Iterator[Draw]:
+    def __iter__(self) -> Iterator[DrawAndLogP]:
         """Use the DrGhmcDiag sampler as an iterator.
 
         Returns:
-            Iterator[Draw]: Iterator of draws from DrGhmcDiag sampler
+            Iterator[DrawAndLogP]: Iterator of draws from DrGhmcDiag sampler
         """
         return self
 
-    def __next__(self) -> Draw:
+    def __next__(self) -> DrawAndLogP:
         """Yields next draw from DrGhmcDiag iterator.
 
         Yields:
-            Draw: Tuple of (sample, log density)
+            DrawAndLogP: Tuple of (sample, log density)
         """
         return self.sample()
 
-    def joint_logp(self, theta: NDArray[np.float64], rho: NDArray[np.float64]) -> float:
+    def joint_logp(self, theta: VectorType, rho: VectorType) -> float:
         """Joint log density of sample (theta, rho) under the cannonical distribution.
 
         Args:
@@ -240,16 +238,16 @@ class DrGhmcDiag:
         Returns:
             float: joint log density
         """
-        adj: float = -0.5 * np.dot(rho, self._metric * rho)
-        return self._model.log_density(theta) + adj
+        adj: float = 0.5 * np.dot(rho, self._metric * rho)
+        return self._model.log_density(theta) - adj
 
     def leapfrog(
         self,
-        theta: NDArray[np.float64],
-        rho: NDArray[np.float64],
+        theta: VectorType,
+        rho: VectorType,
         stepsize: float,
         steps: int,
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    ) -> tuple[VectorType, VectorType]:
         """Propose new sample (theta_prop, rho_prop) with leapfrog integrator.
 
         Discretize and solve Hamilton's equations using the leapfrog integrator to
@@ -269,7 +267,7 @@ class DrGhmcDiag:
             steps: number of leapfrog steps
 
         Returns:
-            tuple[NDArray[np.float64], NDArray[np.float64]]: proposed sample
+            tuple[VectorType, VectorType]: proposed sample
         """
         theta = np.array(theta, copy=True)
         _, grad = self._model.log_density_gradient(theta)
@@ -305,10 +303,13 @@ class DrGhmcDiag:
 
         Args:
             hastings: log probability of rejecting all previous proposals
+
+        Returns:
+            float: log probability of making another proposal
         """
         return hastings if self._probabilistic else 0.0
 
-    def sample(self) -> Draw:
+    def sample(self) -> DrawAndLogP:
         """Sample from target distribution with DrGhmcDiag sampler.
 
         From current sample (theta, rho), propose new sample (theta_prop, rho_prop)
@@ -321,7 +322,7 @@ class DrGhmcDiag:
         before return statement for momentum persistence in Generalized HMC.
 
         Returns:
-            Draw: Tuple of (sample, log density)
+            DrawAndLogP: Tuple of (sample, log density)
         """
         self._rho = self._rng.normal(
             loc=self._rho * np.sqrt(1 - self._dampening),
@@ -357,8 +358,8 @@ class DrGhmcDiag:
 
     def accept(
         self,
-        theta_prop: NDArray[np.float64],
-        rho_prop: NDArray[np.float64],
+        theta_prop: VectorType,
+        rho_prop: VectorType,
         k: int,
         hastings_cur: float,
         logp_cur: float,
