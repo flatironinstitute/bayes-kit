@@ -1,4 +1,4 @@
-from typing import Iterator, Optional, Union
+from typing import Iterator, Optional
 
 import numpy as np
 
@@ -9,18 +9,18 @@ class DrGhmcDiag:
     """Generalized HMC sampler with Probabilistic Delayed Rejection diagonal metric.
 
     We seek to sample draws -- denoted by (theta, rho) -- from a target distribution
-    specified in the model. As an HMC-variant, theta represents position (model 
+    specified in the model. As an HMC-variant, theta represents position (model
     parameters) and rho represents momentum.
 
-    To produce a new draw, we generate a proposed draw with Hamiltonian dynamics. If 
-    accepted, the proposed draw and its log density are returned; if rejected, a new 
+    To produce a new draw, we generate a proposed draw with Hamiltonian dynamics. If
+    accepted, the proposed draw and its log density are returned; if rejected, a new
     proposal is generated. This process is repeated until a maximum number of proposals
     is reached or when probabilistic delayed rejection returns early.
- 
-    This sampler requires non-increasing leapfrog stepsizes such that subsequent 
-    proposals are generated with (equal or) more accurate Hamiltonian dynamics. This 
-    allows for excellent sampling from multiscale distributions: large stepsizes are 
-    used in wide, flat regions while smaller stepsizes are used in narrow, 
+
+    This sampler requires non-increasing leapfrog stepsizes such that subsequent
+    proposals are generated with (equal or) more accurate Hamiltonian dynamics. This
+    allows for excellent sampling from multiscale distributions: large stepsizes are
+    used in wide, flat regions while smaller stepsizes are used in narrow,
     high-curvature regions.
 
     Implementation based on Modi C, Barnett A, Carpenter B. Delayed rejection
@@ -71,10 +71,10 @@ class DrGhmcDiag:
         self._rho = self._rng.normal(size=self._dim)
         self._prob_retry = prob_retry
 
-        # When generating a draw, the cache is used in the joint_logp() and leapfrog() 
-        # functions to avoid recomputing log densities and gradients of the same draw. 
-        # Across draws, cache usage depends on the the proposed draw: if accepted, 
-        # the cache retains the log density and gradient of the proposed draw; if 
+        # When generating a draw, the cache is used in the joint_logp() and leapfrog()
+        # functions to avoid recomputing log densities and gradients of the same draw.
+        # Across draws, cache usage depends on the the proposed draw: if accepted,
+        # the cache retains the log density and gradient of the proposed draw; if
         # rejected, the cache retains the log density and gradient of the current draw.
         self._cache = None
 
@@ -156,7 +156,9 @@ class DrGhmcDiag:
                     f"leapfrog stepsizes must be positive, but found stepsize of "
                     f"{stepsize} at index {idx}"
                 )
-        for idx, (prev, cur) in enumerate(zip(leapfrog_stepsizes[:-1], leapfrog_stepsizes[1:])):
+        for idx, (prev, cur) in enumerate(
+            zip(leapfrog_stepsizes[:-1], leapfrog_stepsizes[1:])
+        ):
             if not cur <= prev:
                 raise ValueError(
                     f"leapfrog stepsizes must be non-increasing, but found stepsize of "

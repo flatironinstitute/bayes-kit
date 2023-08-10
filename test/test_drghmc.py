@@ -17,7 +17,7 @@ def _call_counter(f):
     return wrapper
 
 
-def upper_bound_leapfrog_steps(stepcounts):
+def upper_bound_leapfrog_steps(stepcounts: list[int]) -> int:
     """Upper bound on the number of leapfrog steps used to generate a single sample.
 
     Computing the exact number of leapfrog steps is difficult because (1) we don't
@@ -45,7 +45,7 @@ def upper_bound_leapfrog_steps(stepcounts):
 
 
 @pytest.mark.parametrize("proposals", [1, 2, 3, 4, 5])
-def test_drghmc_num_grad_evals_one_sample(proposals) -> None:
+def test_drghmc_num_grad_evals_one_sample(proposals: int) -> None:
     model = StdNormal()
     model.log_density_gradient = _call_counter(model.log_density_gradient)  # type: ignore
 
@@ -67,7 +67,7 @@ def test_drghmc_num_grad_evals_one_sample(proposals) -> None:
 
 
 @pytest.mark.parametrize("num_samples", [1, 2, 3, 10])
-def test_drghmc_num_grad_evals_many_samples(num_samples) -> None:
+def test_drghmc_num_grad_evals_many_samples(num_samples: int) -> None:
     model = StdNormal()
     model.log_density_gradient = _call_counter(model.log_density_gradient)  # type: ignore
 
@@ -313,6 +313,7 @@ def test_drghmc_invalid_leapfrog_stepsizes() -> None:
         f"{invalid_prev} at index {invalid_idx}"
     )
 
+
 def test_drghmc_invalid_leapfrog_stepcounts() -> None:
     model = StdNormal()
 
@@ -320,7 +321,7 @@ def test_drghmc_invalid_leapfrog_stepcounts() -> None:
         drghmc = DrGhmcDiag(
             model=model,
             proposals=proposals,
-            leapfrog_stepsizes=[1.] * proposals,
+            leapfrog_stepsizes=[1.0] * proposals,
             leapfrog_stepcounts=stepcounts,
             damping=0.001,
             prob_retry=True,
