@@ -389,7 +389,7 @@ def test_drghmc_iter() -> None:
     )
 
     M = 10000
-    draws = np.array([draw for draw in list(itertools.islice(drghmc, M))])
+    draws = np.array([draw for draw, _ in itertools.islice(drghmc, M)])
 
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
