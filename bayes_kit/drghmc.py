@@ -240,10 +240,10 @@ class DrGhmcDiag:
         """
 
         if not self._cache:
-            logp, _ = self._cache[-1]
-        else:
             logp, grad = self._model.log_density_gradient(theta)
             self._cache = [(logp, grad)]
+        else:
+            logp, _ = self._cache[-1]
 
         potential = -logp
         kinetic = 0.5 * np.dot(rho, self._metric * rho)
