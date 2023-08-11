@@ -77,7 +77,7 @@ class DrGhmcDiag:
         # Across draws, cache usage depends on the the proposed draw: if accepted,
         # the cache retains the log density and gradient of the proposed draw; if
         # rejected, the cache retains the log density and gradient of the current draw.
-        self._cache: list[Tuple[float, ArrayLike]] = []
+        self._cache: list[Tuple[float, VectorType]] = []
 
     def _validate_propoals(self, proposals: int) -> int:
         """Validate number of proposals.
@@ -242,7 +242,7 @@ class DrGhmcDiag:
 
         if not self._cache:
             logp, grad = self._model.log_density_gradient(theta)
-            self._cache = [(logp, grad)]
+            self._cache = [(logp, np.asanyarray(grad))]
         else:
             logp, _ = self._cache[-1]
 
@@ -288,7 +288,7 @@ class DrGhmcDiag:
 
         logp, grad = self._model.log_density_gradient(theta)
         rho = rho_mid + 0.5 * stepsize * np.multiply(self._metric, grad).squeeze()
-        self._cache.append((logp, grad))
+        self._cache.append((logp, np.asanyarray(grad)))
         return (theta, rho)
 
     def retry_logp(self, reject_logp: float) -> float:
