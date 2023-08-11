@@ -318,7 +318,7 @@ def test_drghmc_invalid_leapfrog_stepsizes() -> None:
     )
     with pytest.raises(ValueError, match=err_message):
         drghmc_stepsizes(invalid_stepsizes, proposals)
-        
+
     proposals = 2
     invalid_stepsizes = [-0.25, 0.25]
     invalid_idx = 0
@@ -328,6 +328,7 @@ def test_drghmc_invalid_leapfrog_stepsizes() -> None:
     )
     with pytest.raises(ValueError, match=err_message):
         drghmc_stepsizes(invalid_stepsizes, proposals)
+
 
 def test_drghmc_invalid_leapfrog_stepcounts() -> None:
     model = StdNormal()
@@ -384,7 +385,7 @@ def test_drghmc_invalid_leapfrog_stepcounts() -> None:
     )
     with pytest.raises(TypeError, match=err_message):
         drghmc_stepcounts(invalid_stepcounts, proposals)
-        
+
     proposals = 2
     invalid_stepcounts = [-2, 1]
     invalid_idx = 0
