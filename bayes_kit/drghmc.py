@@ -1,6 +1,7 @@
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Tuple
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from .typing import DrawAndLogP, GradModel, Seed, VectorType
 
@@ -76,7 +77,7 @@ class DrGhmcDiag:
         # Across draws, cache usage depends on the the proposed draw: if accepted,
         # the cache retains the log density and gradient of the proposed draw; if
         # rejected, the cache retains the log density and gradient of the current draw.
-        self._cache: list = []
+        self._cache: list[Tuple[float, ArrayLike]] = []
 
     def _validate_propoals(self, proposals: int) -> int:
         """Validate number of proposals.
@@ -98,25 +99,6 @@ class DrGhmcDiag:
                 f"proposals must be greater than or equal to 1, not {proposals}"
             )
         return proposals
-
-    def _validate_damping(self, damping: float) -> float:
-        """Validate damping factor.
-
-        Args:
-            damping: Generalized HMC momentum damping factor in (0, 1]
-
-        Raises:
-            TypeError: damping is not a float
-            ValueError: damping is not in (0, 1]
-
-        Returns:
-            validated damping factor
-        """
-        if not (type(damping) is float):
-            raise TypeError(f"damping must be a float, not {type(damping)}")
-        if not 0 < damping <= 1:
-            raise ValueError(f"damping of {damping} must be within (0, 1]")
-        return damping
 
     def _validate_leapfrog_stepsizes(
         self, leapfrog_stepsizes: list[float]
@@ -206,6 +188,25 @@ class DrGhmcDiag:
                     f"{stepcount} at index {idx}"
                 )
         return leapfrog_stepcounts
+    
+    def _validate_damping(self, damping: float) -> float:
+        """Validate damping factor.
+
+        Args:
+            damping: Generalized HMC momentum damping factor in (0, 1]
+
+        Raises:
+            TypeError: damping is not a float
+            ValueError: damping is not in (0, 1]
+
+        Returns:
+            validated damping factor
+        """
+        if not (type(damping) is float):
+            raise TypeError(f"damping must be a float, not {type(damping)}")
+        if not 0 < damping <= 1:
+            raise ValueError(f"damping of {damping} must be within (0, 1]")
+        return damping
 
     def __iter__(self) -> Iterator[DrawAndLogP]:
         """Return the iterator for draws from this sampler.
