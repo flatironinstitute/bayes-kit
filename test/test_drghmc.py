@@ -1,19 +1,22 @@
-from test.models.binomial import Binomial
-from test.models.std_normal import StdNormal
-from bayes_kit.drghmc import DrGhmcDiag
-import numpy as np
 import functools
 import re
+from test.models.binomial import Binomial
+from test.models.std_normal import StdNormal
+from typing import Any
+
+import numpy as np
 import pytest
 
+from bayes_kit.drghmc import DrGhmcDiag
 
-def _call_counter(f):
+
+def _call_counter(f: Any) -> Any:
     @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        wrapper.calls += 1
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        wrapper.calls += 1  # type: ignore
         return f(*args, **kwargs)
 
-    wrapper.calls = 0
+    wrapper.calls = 0  # type: ignore
     return wrapper
 
 
@@ -174,7 +177,7 @@ def test_drghmc_binom() -> None:
 def test_drghmc_invalid_proposals() -> None:
     model = StdNormal()
 
-    def drghmc_proposals(proposals):
+    def drghmc_proposals(proposals: Any) -> DrGhmcDiag:
         drghmc = DrGhmcDiag(
             model=model,
             proposals=proposals,
@@ -213,7 +216,7 @@ def test_drghmc_invalid_proposals() -> None:
 def test_drghmc_invalid_damping() -> None:
     model = StdNormal()
 
-    def drghmc_proposals(damping):
+    def drghmc_proposals(damping: Any) -> DrGhmcDiag:
         proposals = 3
         drghmc = DrGhmcDiag(
             model=model,
@@ -249,7 +252,7 @@ def test_drghmc_invalid_damping() -> None:
 def test_drghmc_invalid_leapfrog_stepsizes() -> None:
     model = StdNormal()
 
-    def drghmc_stepsizes(stepsizes, proposals):
+    def drghmc_stepsizes(stepsizes: Any, proposals: int) -> DrGhmcDiag:
         drghmc = DrGhmcDiag(
             model=model,
             proposals=proposals,
@@ -317,7 +320,7 @@ def test_drghmc_invalid_leapfrog_stepsizes() -> None:
 def test_drghmc_invalid_leapfrog_stepcounts() -> None:
     model = StdNormal()
 
-    def drghmc_stepcounts(stepcounts, proposals):
+    def drghmc_stepcounts(stepcounts: Any, proposals: int) -> DrGhmcDiag:
         drghmc = DrGhmcDiag(
             model=model,
             proposals=proposals,

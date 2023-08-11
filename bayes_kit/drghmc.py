@@ -76,7 +76,7 @@ class DrGhmcDiag:
         # Across draws, cache usage depends on the the proposed draw: if accepted,
         # the cache retains the log density and gradient of the proposed draw; if
         # rejected, the cache retains the log density and gradient of the current draw.
-        self._cache = None
+        self._cache: list = []
 
     def _validate_propoals(self, proposals: int) -> int:
         """Validate number of proposals.
@@ -239,7 +239,7 @@ class DrGhmcDiag:
             unnormalized, joint log density of draw (theta, rho)
         """
 
-        if self._cache is not None:
+        if not self._cache:
             logp, _ = self._cache[-1]
         else:
             logp, grad = self._model.log_density_gradient(theta)
