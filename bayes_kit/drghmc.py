@@ -247,7 +247,7 @@ class DrGhmcDiag:
             logp, _ = self._cache[-1]
 
         potential = -logp
-        kinetic = 0.5 * np.dot(rho, self._metric * rho)
+        kinetic: float = 0.5 * np.dot(rho, self._metric * rho)
         hamiltonian = potential + kinetic
         return -hamiltonian
 
@@ -277,22 +277,18 @@ class DrGhmcDiag:
         """
         theta = np.array(theta, copy=True)  # copy b/c numpy's += mutates original array
 
+        grad: ArrayLike  # mypy infers too strict a type when reading from cache
         logp, grad = self._cache[-1]
         rho_mid = rho + 0.5 * stepsize * np.multiply(self._metric, grad).squeeze()
         theta += stepsize * rho_mid
 
         for _ in range(stepcount - 1):
             logp, grad = self._model.log_density_gradient(theta)
-            rho_mid += (
-                stepsize * np.multiply(self._metric, np.asanyarray(grad)).squeeze()
-            )
+            rho_mid += stepsize * np.multiply(self._metric, grad).squeeze()
             theta += stepsize * rho_mid
 
         logp, grad = self._model.log_density_gradient(theta)
-        rho = (
-            rho_mid
-            + 0.5 * stepsize * np.multiply(self._metric, np.asanyarray(grad)).squeeze()
-        )
+        rho = rho_mid + 0.5 * stepsize * np.multiply(self._metric, grad).squeeze()
         self._cache.append((logp, np.asanyarray(grad)))
         return (theta, rho)
 

@@ -1,4 +1,5 @@
 import functools
+import itertools
 import re
 from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
@@ -188,7 +189,7 @@ def test_drghmc_invalid_proposals() -> None:
         )
         return drghmc
 
-    invalid_proposals = [1]
+    invalid_proposals: Any = [1]
     err_message = f"proposals must be an int, not {type(invalid_proposals)}"
     with pytest.raises(TypeError, match=err_message):
         drghmc_proposals(invalid_proposals)
@@ -228,7 +229,7 @@ def test_drghmc_invalid_damping() -> None:
         )
         return drghmc
 
-    invalid_damping = [0.5]
+    invalid_damping: Any = [0.5]
     err_message = f"damping must be a float, not {type(invalid_damping)}"
     with pytest.raises(TypeError, match=err_message):
         drghmc_proposals(invalid_damping)
@@ -264,7 +265,7 @@ def test_drghmc_invalid_leapfrog_stepsizes() -> None:
         return drghmc
 
     proposals = 1
-    invalid_stepsizes = 1
+    invalid_stepsizes: Any = 1
     err_message = f"leapfrog_stepsizes must be a list, not {type(invalid_stepsizes)}"
     with pytest.raises(TypeError, match=err_message):
         drghmc_stepsizes(invalid_stepsizes, proposals)
@@ -332,7 +333,7 @@ def test_drghmc_invalid_leapfrog_stepcounts() -> None:
         return drghmc
 
     proposals = 1
-    invalid_stepcounts = 1
+    invalid_stepcounts: Any = 1
     err_message = f"leapfrog_stepcounts must be a list, not {type(invalid_stepcounts)}"
     with pytest.raises(TypeError, match=err_message):
         drghmc_stepcounts(invalid_stepcounts, proposals)
@@ -388,7 +389,7 @@ def test_drghmc_iter() -> None:
     )
 
     M = 10000
-    draws = np.array([draw for idx, draw in enumerate(drghmc) if idx < M])
+    draws = np.array([draw for draw in list(itertools.islice(drghmc, M))])
 
     mean = draws.mean(axis=0)
     var = draws.var(axis=0, ddof=1)
