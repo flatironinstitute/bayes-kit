@@ -372,3 +372,26 @@ def test_drghmc_invalid_leapfrog_stepcounts() -> None:
     )
     with pytest.raises(TypeError, match=err_message):
         drghmc_stepcounts(invalid_stepcounts, proposals)
+
+
+def test_drghmc_iter() -> None:
+    # init with draw from posterior
+    init = np.random.normal(loc=0, scale=1, size=[1])
+    model = StdNormal()
+    drghmc = DrGhmcDiag(
+        model,
+        proposals=3,
+        leapfrog_stepcounts=[10, 10 * 2, 10 * 4],
+        leapfrog_stepsizes=[0.25, 0.25 / 2, 0.25 / 4],
+        damping=0.9,
+        init=init,
+    )
+
+    M = 10000
+    draws = np.array([draw for idx, draw in enumerate(drghmc) if idx < M])
+
+    mean = draws.mean(axis=0)
+    var = draws.var(axis=0, ddof=1)
+
+    np.testing.assert_allclose(mean, model.posterior_mean(), atol=0.1)
+    np.testing.assert_allclose(var, model.posterior_variance(), atol=0.1)
