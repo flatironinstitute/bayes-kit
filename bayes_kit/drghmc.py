@@ -448,11 +448,12 @@ class DrGhmcDiag:
             accept_logp, _ = self.accept(
                 theta_ghost, rho_ghost, i, prop_hastings, prop_logp
             )
-
+            
             if accept_logp == 0:  # early stopping to avoid -inf in np.log1p
                 self._cache.pop()  # cache is set in proposal_map() -> leapfrog()
                 return -np.inf, prop_logp
 
+            print("here")
             reject_logp = np.log1p(-np.exp(accept_logp))
             prop_hastings += reject_logp
             self._cache.pop()  # cache is set in proposal_map() -> leapfrog()

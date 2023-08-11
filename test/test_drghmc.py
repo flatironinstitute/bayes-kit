@@ -99,9 +99,9 @@ def test_drghmc_diag_std_normal() -> None:
     model = StdNormal()
     drghmc = DrGhmcDiag(
         model,
-        proposals=3,
-        leapfrog_stepcounts=[10, 10 * 2, 10 * 4],
-        leapfrog_stepsizes=[0.25, 0.25 / 2, 0.25 / 4],
+        proposals=2,
+        leapfrog_stepcounts=[10, 10 * 2],
+        leapfrog_stepsizes=[10.0, 0.5 / 5],
         damping=0.9,
         init=init,
     )
