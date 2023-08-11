@@ -188,7 +188,7 @@ class DrGhmcDiag:
                     f"{stepcount} at index {idx}"
                 )
         return leapfrog_stepcounts
-    
+
     def _validate_damping(self, damping: float) -> float:
         """Validate damping factor.
 
