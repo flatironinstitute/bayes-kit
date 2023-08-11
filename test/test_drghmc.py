@@ -316,7 +316,18 @@ def test_drghmc_invalid_leapfrog_stepsizes() -> None:
         f"{invalid_cur} at index {invalid_idx + 1} which is greater than stepsize of "
         f"{invalid_prev} at index {invalid_idx}"
     )
-
+    with pytest.raises(ValueError, match=err_message):
+        drghmc_stepsizes(invalid_stepsizes, proposals)
+        
+    proposals = 2
+    invalid_stepsizes = [-0.25, 0.25]
+    invalid_idx = 0
+    err_message = (
+        f"leapfrog stepsizes must be positive, but found stepsize of "
+        f"{invalid_stepsizes[invalid_idx]} at index {invalid_idx}"
+    )
+    with pytest.raises(ValueError, match=err_message):
+        drghmc_stepsizes(invalid_stepsizes, proposals)
 
 def test_drghmc_invalid_leapfrog_stepcounts() -> None:
     model = StdNormal()
@@ -372,6 +383,16 @@ def test_drghmc_invalid_leapfrog_stepcounts() -> None:
         f"{type(invalid_stepcounts[invalid_idx])} at index {invalid_idx}"
     )
     with pytest.raises(TypeError, match=err_message):
+        drghmc_stepcounts(invalid_stepcounts, proposals)
+        
+    proposals = 2
+    invalid_stepcounts = [-2, 1]
+    invalid_idx = 0
+    err_message = (
+        f"leapfrog stepcounts must be positive, but found stepcount of "
+        f"{invalid_stepcounts[invalid_idx]} at index {invalid_idx}"
+    )
+    with pytest.raises(ValueError, match=err_message):
         drghmc_stepcounts(invalid_stepcounts, proposals)
 
 
