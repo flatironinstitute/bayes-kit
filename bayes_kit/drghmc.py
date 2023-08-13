@@ -113,6 +113,7 @@ class DrGhmcDiag:
             ValueError: leapfrog stepsize list is of incorrect length
             TypeError: leapfrog stepsize list contains non-float stepsizes
             ValueError: leapfrog stepsize list contains non-positive stepsizes
+            ValueError: leapfrog stepsize list contains decreasing stepsizes
 
         Returns:
             list of validated leapfrog stepsizes
@@ -276,8 +277,8 @@ class DrGhmcDiag:
             Hamiltonian dynamics simulated for draw (theta, rho)
         """
         theta = np.array(theta, copy=True)  # copy b/c numpy's += mutates original array
-
         grad: ArrayLike  # mypy infers too strict a type when reading from cache
+
         logp, grad = self._cache[-1]
         rho_mid = rho + 0.5 * stepsize * np.multiply(self._metric, grad).squeeze()
         theta += stepsize * rho_mid
@@ -289,6 +290,7 @@ class DrGhmcDiag:
 
         logp, grad = self._model.log_density_gradient(theta)
         rho = rho_mid + 0.5 * stepsize * np.multiply(self._metric, grad).squeeze()
+
         self._cache.append((logp, np.asanyarray(grad)))
         return (theta, rho)
 
@@ -385,7 +387,7 @@ class DrGhmcDiag:
             self._cache.pop()  # cache is set in proposal_map() -> leapfrog()
 
         self._cache = [self._cache.pop()]
-        self._rho = -self._rho  # negate the momentum unconditionally for GHMC
+        self._rho = -self._rho  # negate momentum unconditionally for Generalized HMC
         return self._theta, cur_logp
 
     def accept(
