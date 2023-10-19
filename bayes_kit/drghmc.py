@@ -10,13 +10,14 @@ class DrGhmcDiag:
     """Generalized HMC sampler with Probabilistic Delayed Rejection diagonal metric.
 
     We seek to sample draws -- denoted by (theta, rho) -- from a target distribution
-    specified in the model. As an HMC-variant, theta represents position (model
-    parameters) and rho represents momentum.
+    specified in a probabilistic model. As an HMC-variant, theta represents position 
+    (model parameters) and rho represents momentum.
 
-    To produce a new draw, we generate a proposed draw with Hamiltonian dynamics. If
-    accepted, the proposed draw and its log density are returned; if rejected, a new
-    proposal is generated. This process is repeated until a maximum number of proposals
-    is reached or when probabilistic delayed rejection returns early.
+    To produce a new draw, we partially refresh the momentum and generate a proposed 
+    draw with Hamiltonian dynamics. If accepted, the proposed draw and its log density 
+    are returned; if rejected, a new proposal is generated. This process is repeated 
+    until a maximum number of proposals is reached or when probabilistic delayed 
+    rejection returns early.
 
     This sampler requires non-increasing leapfrog stepsizes such that subsequent
     proposals are generated with (equal or) more accurate Hamiltonian dynamics. This
@@ -305,7 +306,7 @@ class DrGhmcDiag:
         The probability of attempting another proposal depends on where we are in the
         distribution. If the previous proposal has low acceptance probability, propose
         another draw; if the previous proposal has high acceptance probablity but was
-        rejected by chance, do not propose another draw. This avoid unnecessary,
+        rejected by chance, do not propose another draw. This avoids unnecessary,
         additional proposals in high-density regions.
 
         To maintain detailed balance, the acceptance probability is multiplied by an
