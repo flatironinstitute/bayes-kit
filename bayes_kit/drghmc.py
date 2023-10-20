@@ -7,11 +7,12 @@ from .typing import DrawAndLogP, GradModel, Seed, VectorType
 
 
 class DrGhmcDiag:
-    """Generalized HMC sampler with Probabilistic Delayed Rejection diagonal metric.
-
-    We seek to sample draws -- denoted by (theta, rho) -- from a target distribution
-    specified in a probabilistic model. As an HMC-variant, theta represents position
-    (model parameters) and rho represents momentum.
+    """(Probabilistic) Delayed Rejection Generalized Hamiltonian Monte Carlo sampler.
+    
+    Sample from a target probability distribution by generating a sequence of draws. 
+    Each draw (theta, rho) consists of position variable theta and auxiliary momentum 
+    variable rho, with theta representing a single sample of the target distribution's 
+    parameters.
 
     To produce a new draw, partially refresh the momentum and generate a proposed draw
     with Hamiltonian dynamics. If accepted, the proposed draw and its log density are
@@ -19,13 +20,13 @@ class DrGhmcDiag:
     a maximum number of proposals is reached or when probabilistic delayed rejection
     returns early.
 
-    This sampler requires non-increasing leapfrog stepsizes such that subsequent
-    proposals are generated with (equal or) more accurate Hamiltonian dynamics. This
-    allows for excellent sampling from multiscale distributions: large stepsizes are
-    used in wide, flat regions while smaller stepsizes are used in narrow,
-    high-curvature regions.
+    This efficiently samples from multiscale distributions because of probabilistic 
+    delayed rejection and partial momentum refresh. With non-increasing leapfrog 
+    stepsizes, the former encourages large stepsizes in wide, flat regions and smaller 
+    stepsizes in narrow, high-curvature regions. The latter suppresses random-walk 
+    behavior by only partially updating the auxiliary momentum variable rho.
 
-    Implementation based on Modi C, Barnett A, Carpenter B. Delayed rejection
+    This implementation is based on Modi C, Barnett A, Carpenter B. Delayed rejection 
     Hamiltonian Monte Carlo for sampling multiscale distributions. Bayesian Analysis.
     2023. https://doi.org/10.1214/23-BA1360.
     """
@@ -33,7 +34,7 @@ class DrGhmcDiag:
     def __init__(
         self,
         model: GradModel,
-        proposals: int,
+        max_proposals: int,
         leapfrog_stepsizes: list[float],
         leapfrog_stepcounts: list[int],
         damping: float,
@@ -45,19 +46,21 @@ class DrGhmcDiag:
         """Initialize the DrGhmcDiag sampler.
 
         Args:
-            model: model with log density and gradient
-            proposals: maximum number of proposal attempts
+            model: probabilistic model with log density and gradient
+            max_proposals: maximum number of proposal attempts
             leapfrog_stepsizes: list of non-increasing leapfrog stepsizes
             leapfrog_stepcounts: list of number of leapfrog steps
-            damping: Generalized HMC momentum damping factor in (0, 1]
-            metric_diag: diagonal of the metric. Defaults to identity metric.
-            init: initialize Markov chain. Defaults to draw from standard normal.
-            seed: seed for numpy rng. Defaults to non-reproducible rng.
-            prob_retry: retry another proposal probabilistically. Defaults to True.
+            damping: generalized HMC momentum damping factor in (0, 1]
+            metric_diag: diagonal of a diagonal metric. Defaults to identity metric.
+            init: parameter vector used to initialize position variable theta. Defaults
+                to draw from standard normal.
+            seed: seed for Numpy RNG. Defaults to non-reproducible RNG.
+            prob_retry: boolean flag for using probabilistic delayed rejection, 
+                detailed in retry_logp() function. Defaults to True.
         """
         self._model = model
         self._dim = self._model.dims()
-        self._proposals = self._validate_propoals(proposals)
+        self._max_proposals = self._validate_propoals(max_proposals)
         self._leapfrog_stepsizes = self._validate_leapfrog_stepsizes(leapfrog_stepsizes)
         self._leapfrog_stepcounts = self._validate_leapfrog_stepcounts(
             leapfrog_stepcounts
@@ -73,33 +76,30 @@ class DrGhmcDiag:
         self._rho = self._rng.normal(size=self._dim)
         self._prob_retry = prob_retry
 
-        # When generating a draw, the cache is used in the joint_logp() and leapfrog()
-        # functions to avoid recomputing log densities and gradients of the same draw.
-        # Across draws, cache usage depends on the the proposed draw: if accepted,
-        # the cache retains the log density and gradient of the proposed draw; if
-        # rejected, the cache retains the log density and gradient of the current draw.
-        self._cache: list[Tuple[float, VectorType]] = []
+        # cache the log density and gradient of a draw to avoid redundant computation 
+        # within a single draw and across multiple draws
+        self._log_density_gradient_cache: list[Tuple[float, VectorType]] = []
 
-    def _validate_propoals(self, proposals: int) -> int:
-        """Validate number of proposals.
+    def _validate_propoals(self, max_proposals: int) -> int:
+        """Check maximum number of proposals is an integer greater than or equal to one. 
 
         Args:
-            proposals: maximum number of proposal attempts
+            max_proposals: maximum number of proposal attempts
 
         Raises:
-            TypeError: proposals is not an int
-            ValueError: proposals is less than one
+            TypeError: max_proposals is not an int
+            ValueError: max_proposals is less than one
 
         Returns:
             validated number of proposals
         """
-        if not (type(proposals) is int):
-            raise TypeError(f"proposals must be an int, not {type(proposals)}")
-        if not (proposals >= 1):
+        if not (type(max_proposals) is int):
+            raise TypeError(f"max_proposals must be an int, not {type(max_proposals)}")
+        if not (max_proposals >= 1):
             raise ValueError(
-                f"proposals must be greater than or equal to 1, not {proposals}"
+                f"max_proposals must be greater than or equal to 1, not {max_proposals}"
             )
-        return proposals
+        return max_proposals
 
     def _validate_leapfrog_stepsizes(
         self, leapfrog_stepsizes: list[float]
@@ -123,9 +123,9 @@ class DrGhmcDiag:
             raise TypeError(
                 f"leapfrog_stepsizes must be a list, not {type(leapfrog_stepsizes)}"
             )
-        if len(leapfrog_stepsizes) != self._proposals:
+        if len(leapfrog_stepsizes) != self._max_proposals:
             raise ValueError(
-                f"leapfrog_stepsizes must be a list of length {self._proposals}, not"
+                f"leapfrog_stepsizes must be a list of length {self._max_proposals}, not"
                 f" length {len(leapfrog_stepsizes)}, so that each proposal has a "
                 "specified leapfrog stepsize"
             )
@@ -172,9 +172,9 @@ class DrGhmcDiag:
             raise TypeError(
                 f"leapfrog_stepcounts must be a list, not {type(leapfrog_stepcounts)}"
             )
-        if len(leapfrog_stepcounts) != self._proposals:
+        if len(leapfrog_stepcounts) != self._max_proposals:
             raise ValueError(
-                f"leapfrog_stepcounts must be a list of length {self._proposals}, not"
+                f"leapfrog_stepcounts must be a list of length {self._max_proposals}, not"
                 f" length {len(leapfrog_stepcounts)}, so that each proposal has a "
                 "specified number of leapfrog steps"
             )
@@ -195,7 +195,7 @@ class DrGhmcDiag:
         """Validate damping factor.
 
         Args:
-            damping: Generalized HMC momentum damping factor in (0, 1]
+            damping: generalized HMC momentum damping factor in (0, 1]
 
         Raises:
             TypeError: damping is not a float
@@ -235,18 +235,18 @@ class DrGhmcDiag:
         position and momentum respectively.
 
         Args:
-            theta: position (model parameters)
+            theta: position
             rho: momentum
 
         Returns:
             unnormalized, joint log density of draw (theta, rho)
         """
 
-        if not self._cache:
+        if not self._log_density_gradient_cache:
             logp, grad = self._model.log_density_gradient(theta)
-            self._cache = [(logp, np.asanyarray(grad))]
+            self._log_density_gradient_cache = [(logp, np.asanyarray(grad))]
         else:
-            logp, _ = self._cache[-1]
+            logp, _ = self._log_density_gradient_cache[-1]
 
         potential = -logp
         kinetic: float = 0.5 * np.dot(rho, self._metric * rho)
@@ -269,7 +269,7 @@ class DrGhmcDiag:
         proposed draw (theta_prop, rho_prop) from the current draw (theta, rho).
 
         Args:
-            theta: position (model parameters)
+            theta: position
             rho: momentum
             stepsize: stepsize in each leapfrog step
             stepcount: number of leapfrog steps
@@ -277,10 +277,10 @@ class DrGhmcDiag:
         Returns:
             Hamiltonian dynamics simulated for draw (theta, rho)
         """
-        theta = np.array(theta, copy=True)  # copy b/c numpy's += mutates original array
+        theta = np.array(theta, copy=True)  # copy so as not to mutate theta
         grad: ArrayLike  # mypy infers too strict a type when reading from cache
 
-        logp, grad = self._cache[-1]
+        logp, grad = self._log_density_gradient_cache[-1]
         rho_mid = rho + 0.5 * stepsize * np.multiply(self._metric, grad).squeeze()
         theta += stepsize * rho_mid
 
@@ -292,11 +292,11 @@ class DrGhmcDiag:
         logp, grad = self._model.log_density_gradient(theta)
         rho = rho_mid + 0.5 * stepsize * np.multiply(self._metric, grad).squeeze()
 
-        self._cache.append((logp, np.asanyarray(grad)))
+        self._log_density_gradient_cache.append((logp, np.asanyarray(grad)))
         return (theta, rho)
 
     def retry_logp(self, reject_logp: float) -> float:
-        """Log probability of attempting, or retrying, another proposal upon rejection.
+        """Log density of attempting, or retrying, another proposal upon rejection.
 
         To reduce average cost per iteration, make the delayed rejections
         probabilistic, such that a subsequent proposal is not mandatory upon rejection.
@@ -336,7 +336,7 @@ class DrGhmcDiag:
         maintains detailed balance as per Modi et al. (2023).
 
         Args:
-            theta: position (model parameters)
+            theta: position
             rho: momentum
             k: proposal number (for leapfrog stepsize and stepcount)
 
@@ -351,10 +351,10 @@ class DrGhmcDiag:
     def sample(self) -> DrawAndLogP:
         """Draw from the target distribution with this sampler.
 
-        From current draw (theta, rho), propose new draw (theta_prop, rho_prop)
-        and compute its acceptance probability. If accepted, return the new draw and
-        its log density; if rejected, propose a new draw and repeat. Stop when the
-        maximum number of proposals is reached or when probabilistic delayed rejection
+        From the current draw (theta, rho), propose a new draw (theta_prop, rho_prop) 
+        and compute its acceptance probability. If accepted, return the new draw and 
+        its log density; if rejected, propose a new draw and repeat. Stop when the 
+        maximum number of proposals is reached or when probabilistic delayed rejection 
         returns early.
 
         Returns:
@@ -368,7 +368,7 @@ class DrGhmcDiag:
         cur_logp = self.joint_logp(self._theta, self._rho)
         cur_hastings, reject_logp = 0.0, 0.0
 
-        for k in range(self._proposals):
+        for k in range(self._max_proposals):
             retry_logp = self.retry_logp(reject_logp)
             if not np.log(self._rng.uniform()) < retry_logp:
                 break
@@ -385,10 +385,10 @@ class DrGhmcDiag:
 
             reject_logp = np.log1p(-np.exp(accept_logp))
             cur_hastings += reject_logp
-            self._cache.pop()  # cache is set in proposal_map() -> leapfrog()
+            self._log_density_gradient_cache.pop()  # cache is set in proposal_map() -> leapfrog()
 
-        self._cache = [self._cache.pop()]
-        self._rho = -self._rho  # negate momentum unconditionally for Generalized HMC
+        self._log_density_gradient_cache = [self._log_density_gradient_cache.pop()]
+        self._rho = -self._rho  # negate momentum unconditionally for generalized HMC
         return self._theta, cur_logp
 
     def accept(
@@ -421,11 +421,12 @@ class DrGhmcDiag:
         never proposed, maintaining detailed balance requires evaluating the joint
         Gibbs distribution at these points.
 
-        The log acceptance probability computed in this function extends eqns. 29, 30,
-        and 31 of Modi et al. (2023).
+        Extend equations 29, 30, and 31 of Modi et al. (2023) by computing the log 
+        acceptance probability for *any* number of proposals with probabilistic delayed
+        rejection.
 
         Args:
-            theta_prop: proposed position (proposed model parameters)
+            theta_prop: proposed position
             rho_prop: proposed momentum
             k: proposal number (for leapfrog stepsize and stepcount)
             cur_hastings: log probability of rejecting all previous proposals
@@ -434,15 +435,6 @@ class DrGhmcDiag:
         Returns:
             log probability of acceptance and proposed draw
         """
-        # Optimize computation by storing information about the current draw in
-        # cur_logp and *not* passing it into the function directly via (theta, rho).
-
-        # Optimize computation by passing cur_hastings and cur_logp from previous proposal
-        # and by returning prop_logp. This is less readable but ensures (1) only one
-        # density evaluation per draw outside of leapfrog, (2) no recursion is required
-        # to compute the denominator of eqn. 29, and (3) recursion on the numerator of
-        # eqn. 29 is done efficiently -- for equations from Modi et al. (2023).
-
         prop_logp = self.joint_logp(theta_prop, rho_prop)
         prop_hastings = 0
 
@@ -453,12 +445,12 @@ class DrGhmcDiag:
             )
 
             if accept_logp == 0:  # early stopping to avoid -inf in np.log1p
-                self._cache.pop()  # cache is set in proposal_map() -> leapfrog()
+                self._log_density_gradient_cache.pop()  # cache is set in proposal_map() -> leapfrog()
                 return -np.inf, prop_logp
 
             reject_logp = np.log1p(-np.exp(accept_logp))
             prop_hastings += reject_logp
-            self._cache.pop()  # cache is set in proposal_map() -> leapfrog()
+            self._log_density_gradient_cache.pop()  # cache is set in proposal_map() -> leapfrog()
 
         prop_retry_logp = self.retry_logp(prop_hastings)
         cur_retry_logp = self.retry_logp(cur_hastings)
