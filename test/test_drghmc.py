@@ -27,7 +27,7 @@ def upper_bound_leapfrog_steps(stepcounts: list[int]) -> int:
     Computing the exact number of leapfrog steps is difficult because (1) we don't
     know how many proposal attempts the sampler makes and (2) the accept() function
     sometimes terminates early (this occurs when the probability of accepting a ghost
-    point is 1).
+    proposal is 1).
 
     Instead, we compute an upper bound on the number of leapfrog steps: assume that
     the sampler makes the maximum number of proposals and the accept() function never
@@ -43,7 +43,7 @@ def upper_bound_leapfrog_steps(stepcounts: list[int]) -> int:
     for idx, stepcount in enumerate(reversed(stepcounts)):
         # Leapfrog integration with `stepcount` number of steps is performed multiple
         # times when computing ghost samples.
-        repetitions = 2 ** (idx)
+        repetitions = 2 ** idx
         ub_steps += stepcount * repetitions
     return ub_steps
 
