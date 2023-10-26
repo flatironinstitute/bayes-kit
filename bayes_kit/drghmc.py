@@ -1,5 +1,5 @@
-from typing import Iterator, Optional, Tuple
 from collections.abc import Sequence
+from typing import Iterator, Optional, Tuple
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -9,27 +9,27 @@ from .typing import DrawAndLogP, GradModel, Seed, VectorType
 
 class DrGhmcDiag:
     """(Probabilistic) Delayed Rejection Generalized Hamiltonian Monte Carlo sampler.
-    
-    Sample from a target probability distribution by generating a sequence of draws. 
-    Each draw (theta, rho) consists of position variable theta and auxiliary momentum 
-    variable rho, with theta representing a single sample of the target distribution's 
+
+    Sample from a target probability distribution by generating a sequence of draws.
+    Each draw (theta, rho) consists of position variable theta and auxiliary momentum
+    variable rho, with theta representing a single sample of the target distribution's
     parameters.
 
     To produce a new draw, partially refresh the momentum and generate a proposed draw
     with Hamiltonian dynamics. If accepted, the proposed draw and its log density are
     returned. If rejected, compute the probability of retrying another proposal, based
-    on the acceptance probability of the rejected draw; if a fresh uniform(0, 1) 
-    variate is less than this probability, generate a new proposed draw. This process 
+    on the acceptance probability of the rejected draw; if a fresh uniform(0, 1)
+    variate is less than this probability, generate a new proposed draw. This process
     is repeated until a maximum number of proposals is reached.
 
-    This efficiently samples from multiscale distributions because of probabilistic 
-    delayed rejection and partial momentum refresh. With non-increasing leapfrog 
-    step sizes, the former encourages large step sizes in wide, flat regions and 
-    smaller step sizes in narrow, high-curvature regions. The latter suppresses 
-    random-walk behavior by only partially updating the auxiliary momentum variable 
+    This efficiently samples from multiscale distributions because of probabilistic
+    delayed rejection and partial momentum refresh. With non-increasing leapfrog
+    step sizes, the former encourages large step sizes in wide, flat regions and
+    smaller step sizes in narrow, high-curvature regions. The latter suppresses
+    random-walk behavior by only partially updating the auxiliary momentum variable
     rho.
 
-    This implementation is based on Modi C, Barnett A, Carpenter B. Delayed rejection 
+    This implementation is based on Modi C, Barnett A, Carpenter B. Delayed rejection
     Hamiltonian Monte Carlo for sampling multiscale distributions. *Bayesian Analysis*.
     2023. https://doi.org/10.1214/23-BA1360.
     """
@@ -55,10 +55,10 @@ class DrGhmcDiag:
             leapfrog_step_counts: list of number of leapfrog steps
             damping: generalized HMC momentum damping factor in (0, 1]
             metric_diag: diagonal of a diagonal metric. Defaults to identity metric.
-            init: parameter vector to initialize position variable theta. Defaults to 
+            init: parameter vector to initialize position variable theta. Defaults to
                 draw from standard normal.
             seed: seed for Numpy RNG. Defaults to non-reproducible RNG.
-            prob_retry: boolean flag for using probabilistic delayed rejection. 
+            prob_retry: boolean flag for using probabilistic delayed rejection.
                 Defaults to True.
         """
         self._model = model
@@ -77,13 +77,13 @@ class DrGhmcDiag:
         self._rho = self._rng.normal(size=self._dim)
         self._prob_retry = prob_retry
 
-        # use stack to avoid redundant computation within a single draw (when 
+        # use stack to avoid redundant computation within a single draw (when
         # recursively computing the log acceptance probability) and across draws
         self._log_density_gradient_cache: list[Tuple[float, VectorType]] = []
         self._validate_arguments()
 
     def _validate_arguments(self) -> None:
-        """ Raise error if constructor recieves invalid maximum number of proposals, 
+        """Raise error if constructor recieves invalid maximum number of proposals,
         leapfrog step sizes, leapfrog step counts, or damping factor.
         """
         self._validate_propoals(self._max_proposals)
@@ -92,8 +92,8 @@ class DrGhmcDiag:
         self._validate_damping(self._damping)
 
     def _validate_propoals(self, max_proposals: int) -> None:
-        """Raise error if maximum number of proposals is not an integer greater than or 
-        equal to one. 
+        """Raise error if maximum number of proposals is not an integer greater than or
+        equal to one.
 
         Args:
             max_proposals: maximum number of proposal attempts
@@ -110,7 +110,7 @@ class DrGhmcDiag:
             )
 
     def _validate_leapfrog_step_sizes(
-            self, leapfrog_step_sizes: Sequence[float]
+        self, leapfrog_step_sizes: Sequence[float]
     ) -> None:
         """Raise error if leapfrog step sizes is not a list with positive, float step
         sizes and a length equal to the maximum number of proposals.
@@ -150,7 +150,7 @@ class DrGhmcDiag:
     def _validate_leapfrog_step_counts(
         self, leapfrog_step_counts: Sequence[int]
     ) -> None:
-        """Raise error if leapfrog step counts is not a list with positive, integer 
+        """Raise error if leapfrog step counts is not a list with positive, integer
         step counts and a length equal to the maximum number of proposals.
 
         Args:
@@ -255,8 +255,8 @@ class DrGhmcDiag:
         step_size: float,
         step_count: int,
     ) -> tuple[VectorType, VectorType]:
-        """Return the result of running the leapfrog integrator for Hamiltonian 
-        dynamics starting from the current draw (theta, rho) with the specified step 
+        """Return the result of running the leapfrog integrator for Hamiltonian
+        dynamics starting from the current draw (theta, rho) with the specified step
         size and number of steps.
 
         Args:
@@ -317,7 +317,7 @@ class DrGhmcDiag:
     def proposal_map(
         self, theta: VectorType, rho: VectorType, k: int
     ) -> tuple[VectorType, VectorType]:
-        """Return the proposed draw starting at the specified position and momentum 
+        """Return the proposed draw starting at the specified position and momentum
         given the proposal number.
 
         The proposal map generates a proposed draw (theta_prop, rho_prop) from the
@@ -335,7 +335,10 @@ class DrGhmcDiag:
         Returns:
             proposed draw (theta_prop, rho_prop)
         """
-        step_size, step_count = self._leapfrog_step_sizes[k], self._leapfrog_step_counts[k]
+        step_size, step_count = (
+            self._leapfrog_step_sizes[k],
+            self._leapfrog_step_counts[k],
+        )
         theta_prop, rho_prop = self.leapfrog(theta, rho, step_size, step_count)
         rho_prop = -rho_prop
         return (theta_prop, rho_prop)
@@ -343,10 +346,10 @@ class DrGhmcDiag:
     def sample(self) -> DrawAndLogP:
         """Return the next draw in the Markov chain defined by this class.
 
-        From the current draw (theta, rho), propose a new draw (theta_prop, rho_prop) 
-        and compute its acceptance probability. If accepted, return the new draw and 
-        its log density; if rejected, propose a new draw and repeat. Stop when the 
-        maximum number of proposals is reached or when probabilistic delayed rejection 
+        From the current draw (theta, rho), propose a new draw (theta_prop, rho_prop)
+        and compute its acceptance probability. If accepted, return the new draw and
+        its log density; if rejected, propose a new draw and repeat. Stop when the
+        maximum number of proposals is reached or when probabilistic delayed rejection
         returns early.
 
         Returns:
@@ -391,16 +394,16 @@ class DrGhmcDiag:
         cur_hastings: float,
         cur_logp: float,
     ) -> tuple[float, float]:
-        """ Return a tuple containing the log acceptance probability and proposed draw.
+        """Return a tuple containing the log acceptance probability and proposed draw.
 
-        Calculate the log acceptance probability of transitioning from the current draw 
+        Calculate the log acceptance probability of transitioning from the current draw
         (theta, rho) to the proposed draw (theta_prop, rho_prop) by computing the ratio
-        of three terms in the forward and reverse directions: the joint log density, 
-        the Hastings factor, and the probability of retrying another proposal upon 
+        of three terms in the forward and reverse directions: the joint log density,
+        the Hastings factor, and the probability of retrying another proposal upon
         rejection.
 
-        This function extends equations 29, 30, and 31 of Modi et al. (2023) by 
-        computing the log acceptance probability for *any* number of proposals with 
+        This function extends equations 29, 30, and 31 of Modi et al. (2023) by
+        computing the log acceptance probability for *any* number of proposals with
         probabilistic delayed rejection. See Modi et al. (2023) for details.
 
         Args:
