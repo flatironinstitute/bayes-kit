@@ -46,13 +46,13 @@ class DrGhmcDiag:
         seed: Optional[Seed] = None,
         prob_retry: bool = True,
     ):
-        """Initialize the DrGhmcDiag sampler.
+        """Initialize this sampler and validate its arguments.
 
         Args:
             model: probabilistic model with log density and gradient
             max_proposals: maximum number of proposal attempts
-            leapfrog_step_sizes: list of leapfrog step_sizes
-            leapfrog_step_counts: list of number of leapfrog steps
+            leapfrog_step_sizes: sequence of leapfrog step sizes
+            leapfrog_step_counts: sequence of number of leapfrog steps
             damping: generalized HMC momentum damping factor in (0, 1]
             metric_diag: diagonal of a diagonal metric. Defaults to identity metric.
             init: parameter vector to initialize position variable theta. Defaults to
@@ -112,26 +112,26 @@ class DrGhmcDiag:
     def _validate_leapfrog_step_sizes(
         self, leapfrog_step_sizes: Sequence[float]
     ) -> None:
-        """Raise error if leapfrog step sizes is not a list with positive, float step
+        """Raise error if leapfrog step sizes is not a sequence with positive, float step
         sizes and a length equal to the maximum number of proposals.
 
         Args:
-            leapfrog_step_sizes: list of leapfrog step sizes
+            leapfrog_step_sizes: sequence of leapfrog step sizes
 
         Raises:
-            TypeError: leapfrog_step_sizes is not a list
+            TypeError: leapfrog_step_sizes is not a sequence
             ValueError: leapfrog_step_sizes is of incorrect length
             TypeError: leapfrog_step_sizes contains non-float step sizes
             ValueError: leapfrog_step_sizes contains non-positive step sizes
         """
-        if not isinstance(leapfrog_step_sizes, list):
+        if not isinstance(leapfrog_step_sizes, Sequence):
             raise TypeError(
-                f"leapfrog_step_sizes must be of type list, but found type "
-                f"{type(leapfrog_step_sizes)}"
+                f"leapfrog_step_sizes must be an instance of type sequence, but found "
+                f"type {type(leapfrog_step_sizes)}"
             )
         if len(leapfrog_step_sizes) != self._max_proposals:
             raise ValueError(
-                f"leapfrog_step_sizes must be a list of length {self._max_proposals} "
+                f"leapfrog_step_sizes must be a sequence of length {self._max_proposals} "
                 f"so that each proposal has its own specfied leapfrog step size, but "
                 f"instead found length {len(leapfrog_step_sizes)}"
             )
@@ -150,26 +150,26 @@ class DrGhmcDiag:
     def _validate_leapfrog_step_counts(
         self, leapfrog_step_counts: Sequence[int]
     ) -> None:
-        """Raise error if leapfrog step counts is not a list with positive, integer
+        """Raise error if leapfrog step counts is not a sequence with positive, integer
         step counts and a length equal to the maximum number of proposals.
 
         Args:
-            leapfrog_step_counts: list of leapfrog step counts
+            leapfrog_step_counts: sequence of leapfrog step counts
 
         Raises:
-            TypeError: leapfrog_step_counts is not a list
+            TypeError: leapfrog_step_counts is not a sequence
             ValueError: leapfrog_step_counts is of incorrect length
             TypeError: leapfrog_step_counts contains non-integer steps
             ValueError: leapfrog_step_counts contains non-positive steps
         """
-        if not isinstance(leapfrog_step_counts, list):
+        if not isinstance(leapfrog_step_counts, Sequence):
             raise TypeError(
-                f"leapfrog_step_counts must be of type list, but found type "
-                f"{type(leapfrog_step_counts)}"
+                f"leapfrog_step_counts must be an instance of type sequence, but found "
+                f"type {type(leapfrog_step_counts)}"
             )
         if len(leapfrog_step_counts) != self._max_proposals:
             raise ValueError(
-                f"leapfrog_step_counts must be a list of length {self._max_proposals}, "
+                f"leapfrog_step_counts must be a sequence of length {self._max_proposals}, "
                 f"so that each proposal has its own specified number of leapfrog "
                 f"steps, but instead found length {len(leapfrog_step_counts)}"
             )
