@@ -1,6 +1,7 @@
 import functools
 import itertools
 import re
+from collections.abc import Sequence
 from test.models.binomial import Binomial
 from test.models.std_normal import StdNormal
 from typing import Any
@@ -21,7 +22,7 @@ def _call_counter(f: Any) -> Any:
     return wrapper
 
 
-def upper_bound_leapfrog_steps(step_counts: list[int]) -> int:
+def upper_bound_leapfrog_steps(step_counts: Sequence[int]) -> int:
     """Upper bound on the number of leapfrog steps used to generate a single sample.
 
     Computing the exact number of leapfrog steps is difficult because (1) we don't
@@ -34,7 +35,7 @@ def upper_bound_leapfrog_steps(step_counts: list[int]) -> int:
     terminates early.
 
     Args:
-        step_counts: list of number of leapfrog steps
+        step_counts: sequence of number of leapfrog steps
 
     Returns:
         upper bound on number of leapfrog steps
