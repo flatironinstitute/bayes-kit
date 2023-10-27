@@ -112,8 +112,8 @@ class DrGhmcDiag:
     def _validate_leapfrog_step_sizes(
         self, leapfrog_step_sizes: Sequence[float]
     ) -> None:
-        """Raise error if leapfrog step sizes is not a sequence with positive, float step
-        sizes and a length equal to the maximum number of proposals.
+        """Raise error if leapfrog step sizes is not a sequence with positive, float 
+        step sizes and a length equal to the maximum number of proposals.
 
         Args:
             leapfrog_step_sizes: sequence of leapfrog step sizes
@@ -131,20 +131,21 @@ class DrGhmcDiag:
             )
         if len(leapfrog_step_sizes) != self._max_proposals:
             raise ValueError(
-                f"leapfrog_step_sizes must be a sequence of length {self._max_proposals} "
-                f"so that each proposal has its own specfied leapfrog step size, but "
-                f"instead found length {len(leapfrog_step_sizes)}"
+                f"leapfrog_step_sizes must be a sequence of length "
+                f"{self._max_proposals}, so that each proposal has its own specified "
+                f"leapfrog step size, but instead found length of "
+                f"{len(leapfrog_step_sizes)}"
             )
         for idx, step_size in enumerate(leapfrog_step_sizes):
             if not isinstance(step_size, float):
                 raise TypeError(
-                    f"each step size in leapfrog_step_sizes must be of type float, but "
-                    f"found step size of type {type(step_size)} at index {idx}"
+                    f"each step size in leapfrog_step_sizes must be of type float, but"
+                    f" found step size of type {type(step_size)} at index {idx}"
                 )
             if not step_size > 0:
                 raise ValueError(
-                    f"each step size in leapfrog_step_sizes must be positive, but found "
-                    f"step size of {step_size} at index {idx}"
+                    f"each step size in leapfrog_step_sizes must be positive, but "
+                    f"found step size of {step_size} at index {idx}"
                 )
 
     def _validate_leapfrog_step_counts(
@@ -164,20 +165,21 @@ class DrGhmcDiag:
         """
         if not isinstance(leapfrog_step_counts, Sequence):
             raise TypeError(
-                f"leapfrog_step_counts must be an instance of type sequence, but found "
-                f"type {type(leapfrog_step_counts)}"
+                f"leapfrog_step_counts must be an instance of type sequence, but found"
+                f" type {type(leapfrog_step_counts)}"
             )
         if len(leapfrog_step_counts) != self._max_proposals:
             raise ValueError(
-                f"leapfrog_step_counts must be a sequence of length {self._max_proposals}, "
-                f"so that each proposal has its own specified number of leapfrog "
-                f"steps, but instead found length {len(leapfrog_step_counts)}"
+                f"leapfrog_step_counts must be a sequence of length "
+                f"{self._max_proposals}, so that each proposal has its own specified "
+                f"number of leapfrog steps, but instead found length of "
+                f"{len(leapfrog_step_counts)}"
             )
         for idx, step_count in enumerate(leapfrog_step_counts):
             if not isinstance(step_count, int):
                 raise TypeError(
-                    f"each step count in leapfrog_step_counts must be of type int, but "
-                    f"found step count of type {type(step_count)} at index {idx}"
+                    f"each step count in leapfrog_step_counts must be of type int, but"
+                    f" found step count of type {type(step_count)} at index {idx}"
                 )
             if not step_count > 0:
                 raise ValueError(
