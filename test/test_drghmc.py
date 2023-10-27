@@ -21,7 +21,7 @@ def _call_counter(f: Any) -> Any:
     return wrapper
 
 
-def upper_bound_leapfrog_steps(stepcounts: list[int]) -> int:
+def upper_bound_leapfrog_steps(step_counts: list[int]) -> int:
     """Upper bound on the number of leapfrog steps used to generate a single sample.
 
     Computing the exact number of leapfrog steps is difficult because (1) we don't
@@ -34,36 +34,36 @@ def upper_bound_leapfrog_steps(stepcounts: list[int]) -> int:
     terminates early.
 
     Args:
-        stepcounts: list of number of leapfrog steps
+        step_counts: list of number of leapfrog steps
 
     Returns:
         upper bound on number of leapfrog steps
     """
     ub_steps = 0
-    for idx, stepcount in enumerate(reversed(stepcounts)):
-        # Leapfrog integration with `stepcount` number of steps is performed multiple
+    for idx, step_count in enumerate(reversed(step_counts)):
+        # Leapfrog integration with `step_count` number of steps is performed multiple
         # times when computing ghost samples.
-        repetitions = 2 ** idx
-        ub_steps += stepcount * repetitions
+        repetitions = 2**idx
+        ub_steps += step_count * repetitions
     return ub_steps
 
 
-@pytest.mark.parametrize("proposals", [1, 2, 3, 4, 5])
-def test_drghmc_num_grad_evals_one_sample(proposals: int) -> None:
+@pytest.mark.parametrize("max_proposals", [1, 2, 3, 4, 5])
+def test_drghmc_num_grad_evals_one_sample(max_proposals: int) -> None:
     model = StdNormal()
     model.log_density_gradient = _call_counter(model.log_density_gradient)  # type: ignore
 
     drghmc = DrGhmcDiag(
         model=model,
-        proposals=proposals,
-        leapfrog_stepsizes=[1.0] * proposals,
-        leapfrog_stepcounts=[2 * (i + 1) for i in range(proposals)],
+        max_proposals=max_proposals,
+        leapfrog_step_sizes=[1.0] * max_proposals,
+        leapfrog_step_counts=[2 * (i + 1) for i in range(max_proposals)],
         damping=0.001,
         prob_retry=True,
     )
     _ = drghmc.sample()
 
-    ub_steps = upper_bound_leapfrog_steps(drghmc._leapfrog_stepcounts)
+    ub_steps = upper_bound_leapfrog_steps(drghmc._leapfrog_step_counts)
 
     # Expect one call to log_density_gradient per leapfrog step, plus one for
     # calculating the density and gradient of the intial sample.
@@ -77,15 +77,15 @@ def test_drghmc_num_grad_evals_many_samples(num_samples: int) -> None:
 
     drghmc = DrGhmcDiag(
         model=model,
-        proposals=1,
-        leapfrog_stepsizes=[95.0],
-        leapfrog_stepcounts=[1],
+        max_proposals=1,
+        leapfrog_step_sizes=[95.0],
+        leapfrog_step_counts=[1],
         damping=0.001,
         prob_retry=True,
     )
     _ = np.array([drghmc.sample()[0] for _ in range(num_samples)])
 
-    ub_steps_one_sample = upper_bound_leapfrog_steps(drghmc._leapfrog_stepcounts)
+    ub_steps_one_sample = upper_bound_leapfrog_steps(drghmc._leapfrog_step_counts)
     ub_total_steps = ub_steps_one_sample * num_samples
 
     # Expect one call to log_density_gradient per leapfrog step, plus one for
@@ -99,9 +99,9 @@ def test_drghmc_diag_std_normal() -> None:
     model = StdNormal()
     drghmc = DrGhmcDiag(
         model,
-        proposals=2,
-        leapfrog_stepcounts=[10, 10 * 2],
-        leapfrog_stepsizes=[10.0, 0.5 / 5],
+        max_proposals=2,
+        leapfrog_step_counts=[10, 10 * 2],
+        leapfrog_step_sizes=[10.0, 0.5 / 5],
         damping=0.9,
         init=init,
     )
@@ -122,9 +122,9 @@ def test_drghmc_diag_repr() -> None:
 
     drghmc_1 = DrGhmcDiag(
         model,
-        proposals=3,
-        leapfrog_stepcounts=[10, 20, 30],
-        leapfrog_stepsizes=[0.25, 0.25 / 4, 0.25 / 8],
+        max_proposals=3,
+        leapfrog_step_counts=[10, 20, 30],
+        leapfrog_step_sizes=[0.25, 0.25 / 4, 0.25 / 8],
         damping=0.2,
         init=init,
         seed=123,
@@ -132,9 +132,9 @@ def test_drghmc_diag_repr() -> None:
 
     drghmc_2 = DrGhmcDiag(
         model,
-        proposals=3,
-        leapfrog_stepcounts=[10, 20, 30],
-        leapfrog_stepsizes=[0.25, 0.25 / 4, 0.25 / 8],
+        max_proposals=3,
+        leapfrog_step_counts=[10, 20, 30],
+        leapfrog_step_sizes=[0.25, 0.25 / 4, 0.25 / 8],
         damping=0.2,
         init=init,
         seed=123,
@@ -149,14 +149,14 @@ def test_drghmc_diag_repr() -> None:
 
 def test_drghmc_binom() -> None:
     model = Binomial(alpha=2, beta=3, x=5, N=15)
-    proposals = 3
+    max_proposals = 3
     M = 800
 
     drghmc = DrGhmcDiag(
         model,
-        proposals,
-        leapfrog_stepsizes=[0.1] * proposals,
-        leapfrog_stepcounts=[3] * proposals,
+        max_proposals,
+        leapfrog_step_sizes=[0.1] * max_proposals,
+        leapfrog_step_counts=[3] * max_proposals,
         damping=0.2,
         init=np.array([model.initial_state(0)]),
     )
@@ -178,223 +178,172 @@ def test_drghmc_binom() -> None:
 def test_drghmc_invalid_proposals() -> None:
     model = StdNormal()
 
-    def drghmc_proposals(proposals: Any) -> DrGhmcDiag:
+    def drghmc_proposals(max_proposals: Any) -> DrGhmcDiag:
         drghmc = DrGhmcDiag(
             model=model,
-            proposals=proposals,
-            leapfrog_stepsizes=[1],
-            leapfrog_stepcounts=[1],
+            max_proposals=max_proposals,
+            leapfrog_step_sizes=[1],
+            leapfrog_step_counts=[1],
             damping=0.001,
             prob_retry=True,
         )
         return drghmc
 
-    invalid_proposals: Any = [1]
-    err_message = f"proposals must be an int, not {type(invalid_proposals)}"
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_proposals(invalid_proposals)
+    for non_integer_proposal in [[1], 1.0]:
+        err_message = f"max_proposals must be an int, not {type(non_integer_proposal)}"
+        with pytest.raises(TypeError, match=err_message):
+            drghmc_proposals(non_integer_proposal)
 
-    invalid_proposals = 1.0
-    err_message = f"proposals must be an int, not {type(invalid_proposals)}"
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_proposals(invalid_proposals)
+    for non_positive_proposal in [0, -1]:
+        err_message = (
+            f"max_proposals must be greater than or equal to 1, not "
+            f"{non_positive_proposal}"
+        )
+        with pytest.raises(ValueError, match=err_message):
+            drghmc_proposals(non_positive_proposal)
 
-    invalid_proposals = 0
+
+def test_drghmc_invalid_leapfrog_step_sizes() -> None:
+    model = StdNormal()
+
+    def drghmc_step_sizes(step_sizes: Any, max_proposals: int) -> DrGhmcDiag:
+        drghmc = DrGhmcDiag(
+            model=model,
+            max_proposals=max_proposals,
+            leapfrog_step_sizes=step_sizes,
+            leapfrog_step_counts=[1] * max_proposals,
+            damping=0.001,
+            prob_retry=True,
+        )
+        return drghmc
+
+    max_proposals = 1
+    for non_sequence_step_sizes in [1, 0.25]:
+        err_message = (
+            f"leapfrog_step_sizes must be an instance of type sequence, but found "
+            f"type {type(non_sequence_step_sizes)}"
+        )
+        with pytest.raises(TypeError, match=err_message):
+            drghmc_step_sizes(non_sequence_step_sizes, max_proposals)
+
+    max_proposals = 2
+    for incorrect_length_step_sizes in [[0.25], [0.25, 0.25, 0.25]]:
+        err_message = (
+            f"leapfrog_step_sizes must be a sequence of length {max_proposals}, so "
+            f"that each proposal has its own specified leapfrog step size, but instead"
+            f" found length of {len(incorrect_length_step_sizes)}"
+        )
+        with pytest.raises(ValueError, match=err_message):
+            drghmc_step_sizes(incorrect_length_step_sizes, max_proposals)
+
+    max_proposals = 2
+    non_float_step_sizes = [float(1), int(1)]
+    invalid_idx = 1
     err_message = (
-        f"proposals must be greater than or equal to 1, not {invalid_proposals}"
+        f"each step size in leapfrog_step_sizes must be of type float, but found step "
+        f"size of type {type(non_float_step_sizes[invalid_idx])} at index "
+        f"{invalid_idx}"
     )
-    with pytest.raises(ValueError, match=err_message):
-        drghmc_proposals(invalid_proposals)
+    with pytest.raises(TypeError, match=err_message):
+        drghmc_step_sizes(non_float_step_sizes, max_proposals)
 
-    invalid_proposals = -1
+    max_proposals = 2
+    invalid_idx = 0
+    for non_positive_step_sizes in [[-0.25, 0.25], [0.0, 0.25]]:
+        err_message = (
+            f"each step size in leapfrog_step_sizes must be positive, but found "
+            f"step size of {non_positive_step_sizes[invalid_idx]} at index "
+            f"{invalid_idx}"
+        )
+        with pytest.raises(ValueError, match=err_message):
+            drghmc_step_sizes(non_positive_step_sizes, max_proposals)
+
+
+def test_drghmc_invalid_leapfrog_step_counts() -> None:
+    model = StdNormal()
+
+    def drghmc_step_counts(step_counts: Any, max_proposals: int) -> DrGhmcDiag:
+        drghmc = DrGhmcDiag(
+            model=model,
+            max_proposals=max_proposals,
+            leapfrog_step_sizes=[1.0] * max_proposals,
+            leapfrog_step_counts=step_counts,
+            damping=0.001,
+            prob_retry=True,
+        )
+        return drghmc
+
+    max_proposals = 1
+    for non_sequence_step_counts in [1, 0.25]:
+        err_message = (
+            f"leapfrog_step_counts must be an instance of type sequence, but found "
+            f"type {type(non_sequence_step_counts)}"
+        )
+        with pytest.raises(TypeError, match=err_message):
+            drghmc_step_counts(non_sequence_step_counts, max_proposals)
+
+    max_proposals = 2
+    for incorrect_length_step_counts in [[0.25], [0.25, 0.25, 0.25]]:
+        err_message = (
+            f"leapfrog_step_counts must be a sequence of length {max_proposals}, so "
+            f"that each proposal has its own specified number of leapfrog steps, but "
+            f"instead found length of {len(incorrect_length_step_counts)}"
+        )
+        with pytest.raises(ValueError, match=err_message):
+            drghmc_step_counts(incorrect_length_step_counts, max_proposals)
+
+    max_proposals = 2
+    non_integer_step_counts = [1, 3.5]
+    invalid_idx = 1
     err_message = (
-        f"proposals must be greater than or equal to 1, not {invalid_proposals}"
+        f"each step count in leapfrog_step_counts must be of type int, but found step "
+        f"count of type {type(non_integer_step_counts[invalid_idx])} at index "
+        f"{invalid_idx}"
     )
-    with pytest.raises(ValueError, match=err_message):
-        drghmc_proposals(invalid_proposals)
+    with pytest.raises(TypeError, match=err_message):
+        drghmc_step_counts(non_integer_step_counts, max_proposals)
+
+    max_proposals = 2
+    invalid_idx = 0
+    for non_positive_step_counts in [[-2, 1], [0, 1]]:
+        err_message = (
+            f"each step count in leapfrog_step_counts must be positive, but found "
+            f"step count of {non_positive_step_counts[invalid_idx]} at index "
+            f"{invalid_idx}"
+        )
+        with pytest.raises(ValueError, match=err_message):
+            drghmc_step_counts(non_positive_step_counts, max_proposals)
 
 
 def test_drghmc_invalid_damping() -> None:
     model = StdNormal()
 
     def drghmc_proposals(damping: Any) -> DrGhmcDiag:
-        proposals = 3
+        max_proposals = 3
         drghmc = DrGhmcDiag(
             model=model,
-            proposals=proposals,
-            leapfrog_stepsizes=[1.0] * proposals,
-            leapfrog_stepcounts=[1] * proposals,
+            max_proposals=max_proposals,
+            leapfrog_step_sizes=[1.0] * max_proposals,
+            leapfrog_step_counts=[1] * max_proposals,
             damping=damping,
             prob_retry=True,
         )
         return drghmc
 
-    invalid_damping: Any = [0.5]
-    err_message = f"damping must be a float, not {type(invalid_damping)}"
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_proposals(invalid_damping)
-
-    invalid_damping = int(1)
-    err_message = f"damping must be a float, not {type(invalid_damping)}"
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_proposals(invalid_damping)
-
-    invalid_damping = float(0)
-    err_message = f"damping of {invalid_damping} must be within (0, 1]"
-    with pytest.raises(ValueError, match=re.escape(err_message)):
-        drghmc_proposals(invalid_damping)
-
-    invalid_damping = float(-1)
-    err_message = f"damping of {invalid_damping} must be within (0, 1]"
-    with pytest.raises(ValueError, match=re.escape(err_message)):
-        drghmc_proposals(invalid_damping)
-
-
-def test_drghmc_invalid_leapfrog_stepsizes() -> None:
-    model = StdNormal()
-
-    def drghmc_stepsizes(stepsizes: Any, proposals: int) -> DrGhmcDiag:
-        drghmc = DrGhmcDiag(
-            model=model,
-            proposals=proposals,
-            leapfrog_stepsizes=stepsizes,
-            leapfrog_stepcounts=[1] * proposals,
-            damping=0.001,
-            prob_retry=True,
+    for non_float_damping in [[0.5], int(1)]:
+        err_message = (
+            f"damping must be of type float, but found type {type(non_float_damping)}"
         )
-        return drghmc
+        with pytest.raises(TypeError, match=err_message):
+            drghmc_proposals(non_float_damping)
 
-    proposals = 1
-    invalid_stepsizes: Any = 1
-    err_message = f"leapfrog_stepsizes must be a list, not {type(invalid_stepsizes)}"
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_stepsizes(invalid_stepsizes, proposals)
-
-    proposals = 1
-    invalid_stepsizes = 0.25
-    err_message = f"leapfrog_stepsizes must be a list, not {type(invalid_stepsizes)}"
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_stepsizes(invalid_stepsizes, proposals)
-
-    proposals = 2
-    invalid_stepsizes = [0.25, 0.25, 0.25]
-    err_message = (
-        f"leapfrog_stepsizes must be a list of length {proposals}, not length "
-        f"{len(invalid_stepsizes)}, so that each proposal has a specified leapfrog "
-        f"stepsize"
-    )
-    with pytest.raises(ValueError, match=err_message):
-        drghmc_stepsizes(invalid_stepsizes, proposals)
-
-    proposals = 4
-    invalid_stepsizes = [0.25, 0.25, 0.25]
-    err_message = (
-        f"leapfrog_stepsizes must be a list of length {proposals}, not length "
-        f"{len(invalid_stepsizes)}, so that each proposal has a specified leapfrog "
-        f"stepsize"
-    )
-    with pytest.raises(ValueError, match=err_message):
-        drghmc_stepsizes(invalid_stepsizes, proposals)
-
-    proposals = 2
-    invalid_stepsizes = [float(1), int(1)]
-    invalid_idx = 1
-    err_message = (
-        f"leapfrog stepsizes must be of type float, not "
-        f"{type(invalid_stepsizes[invalid_idx])} at index {invalid_idx}"
-    )
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_stepsizes(invalid_stepsizes, proposals)
-
-    proposals = 3
-    invalid_stepsizes = [0.25, 0.24, 0.25]
-    invalid_idx = 1
-    invalid_cur = invalid_stepsizes[invalid_idx + 1]
-    invalid_prev = invalid_stepsizes[invalid_idx]
-    err_message = (
-        f"leapfrog stepsizes must be non-increasing, but found stepsize of "
-        f"{invalid_cur} at index {invalid_idx + 1} which is greater than stepsize of "
-        f"{invalid_prev} at index {invalid_idx}"
-    )
-    with pytest.raises(ValueError, match=err_message):
-        drghmc_stepsizes(invalid_stepsizes, proposals)
-
-    proposals = 2
-    invalid_stepsizes = [-0.25, 0.25]
-    invalid_idx = 0
-    err_message = (
-        f"leapfrog stepsizes must be positive, but found stepsize of "
-        f"{invalid_stepsizes[invalid_idx]} at index {invalid_idx}"
-    )
-    with pytest.raises(ValueError, match=err_message):
-        drghmc_stepsizes(invalid_stepsizes, proposals)
-
-
-def test_drghmc_invalid_leapfrog_stepcounts() -> None:
-    model = StdNormal()
-
-    def drghmc_stepcounts(stepcounts: Any, proposals: int) -> DrGhmcDiag:
-        drghmc = DrGhmcDiag(
-            model=model,
-            proposals=proposals,
-            leapfrog_stepsizes=[1.0] * proposals,
-            leapfrog_stepcounts=stepcounts,
-            damping=0.001,
-            prob_retry=True,
+    for out_of_range_damping in [float(0), float(-1)]:
+        err_message = (
+            f"damping must be within (0, 1], but found damping of "
+            f"{out_of_range_damping}"
         )
-        return drghmc
-
-    proposals = 1
-    invalid_stepcounts: Any = 1
-    err_message = f"leapfrog_stepcounts must be a list, not {type(invalid_stepcounts)}"
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_stepcounts(invalid_stepcounts, proposals)
-
-    proposals = 1
-    invalid_stepcounts = 0.25
-    err_message = f"leapfrog_stepcounts must be a list, not {type(invalid_stepcounts)}"
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_stepcounts(invalid_stepcounts, proposals)
-
-    proposals = 2
-    invalid_stepcounts = [0.25, 0.25, 0.25]
-    err_message = (
-        f"leapfrog_stepcounts must be a list of length {proposals}, not length "
-        f"{len(invalid_stepcounts)}, so that each proposal has a specified number of "
-        f"leapfrog steps"
-    )
-    with pytest.raises(ValueError, match=err_message):
-        drghmc_stepcounts(invalid_stepcounts, proposals)
-
-    proposals = 4
-    invalid_stepcounts = [0.25, 0.25, 0.25]
-    err_message = (
-        f"leapfrog_stepcounts must be a list of length {proposals}, not length "
-        f"{len(invalid_stepcounts)}, so that each proposal has a specified number of "
-        f"leapfrog steps"
-    )
-    with pytest.raises(ValueError, match=err_message):
-        drghmc_stepcounts(invalid_stepcounts, proposals)
-
-    proposals = 2
-    invalid_stepcounts = [1, 3.5]
-    invalid_idx = 1
-    err_message = (
-        f"leapfrog stepcounts must be of type int, not "
-        f"{type(invalid_stepcounts[invalid_idx])} at index {invalid_idx}"
-    )
-    with pytest.raises(TypeError, match=err_message):
-        drghmc_stepcounts(invalid_stepcounts, proposals)
-
-    proposals = 2
-    invalid_stepcounts = [-2, 1]
-    invalid_idx = 0
-    err_message = (
-        f"leapfrog stepcounts must be positive, but found stepcount of "
-        f"{invalid_stepcounts[invalid_idx]} at index {invalid_idx}"
-    )
-    with pytest.raises(ValueError, match=err_message):
-        drghmc_stepcounts(invalid_stepcounts, proposals)
+        with pytest.raises(ValueError, match=re.escape(err_message)):
+            drghmc_proposals(out_of_range_damping)
 
 
 def test_drghmc_iter() -> None:
@@ -403,9 +352,9 @@ def test_drghmc_iter() -> None:
     model = StdNormal()
     drghmc = DrGhmcDiag(
         model,
-        proposals=3,
-        leapfrog_stepcounts=[10, 10 * 2, 10 * 4],
-        leapfrog_stepsizes=[0.25, 0.25 / 2, 0.25 / 4],
+        max_proposals=3,
+        leapfrog_step_counts=[10, 10 * 2, 10 * 4],
+        leapfrog_step_sizes=[0.25, 0.25 / 2, 0.25 / 4],
         damping=0.9,
         init=init,
     )
