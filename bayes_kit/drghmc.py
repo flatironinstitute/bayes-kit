@@ -112,7 +112,7 @@ class DrGhmcDiag:
     def _validate_leapfrog_step_sizes(
         self, leapfrog_step_sizes: Sequence[float]
     ) -> None:
-        """Raise error if leapfrog step sizes is not a sequence with positive, float 
+        """Raise error if leapfrog step sizes is not a sequence with positive, float
         step sizes and a length equal to the maximum number of proposals.
 
         Args:
