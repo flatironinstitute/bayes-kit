@@ -90,6 +90,13 @@ potential energy function equal to the negative log density. It
 requires a target log density, gradient function, and optionally a
 metric.
 
+#### Delayed Rejection Generalized Hamiltonian Monte Carlo sampler
+
+Delayed Rejection Generalized Hamiltonian Monte Carlo (DRGHMC) is an
+HMC variant for efficient sampling of multiscale distributions. It 
+requires a target log density, gradient function, and optionally a
+metric.
+
 ### Sequential Monte Carlo samplers
 
 Sequential Monte Carlo (SMC) samplers alternate proposing moves and
