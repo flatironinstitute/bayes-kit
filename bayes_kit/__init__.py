@@ -11,8 +11,8 @@ from .mala import MALA
 from .metropolis import Metropolis, MetropolisHastings
 from .rhat import rhat
 from .smc import TemperedLikelihoodSMC
-from .importance import importance_sample, importance_resample, is_expect, is_weights, pareto_smooth
-from .pareto_smooth import gen_pareto_estimate, pareto_smooth
+from .pareto_smooth import generalized_pareto_estimate, generalized_pareto_quantile, pareto_smooth
+from .importance import is_weights, is_expect, importance_sample, importance_resample, is_weights_ps, importance_sample_ps, importance_resample_ps
 
 __all__ = [
     "DrGhmcDiag",
